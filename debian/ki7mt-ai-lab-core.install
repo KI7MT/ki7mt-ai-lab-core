@@ -1,0 +1,8 @@
+src/ki7mt-lab-db-init usr/bin/
+src/ki7mt-lab-env usr/bin/
+src/0*-*.sql usr/share/ki7mt-ai-lab/ddl/
+src/spa-config.json var/www/ki7mt-ai-lab/
+data/ki7mt-ai-lab.xpm usr/share/pixmaps/
+data/ki7mt-ai-lab.desktop usr/share/applications/
+doc/source/lab-manual.html usr/share/doc/ki7mt-ai-lab/
+pkg-info.txt usr/share/doc/ki7mt-ai-lab/

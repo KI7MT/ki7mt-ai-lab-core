@@ -1,0 +1,15 @@
+Source: ki7mt-ai-lab-core
+Section: science
+Priority: optional
+Maintainer: Greg Beam, KI7MT <your-email@example.com>
+Build-Depends: debhelper-compat (= 13), autoconf, automake, autotools-dev
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://github.com/KI7MT/ki7mt-ai-lab-core
+
+Package: ki7mt-ai-lab-core
+Architecture: all
+Depends: clickhouse-server, clickhouse-client, python3, ${misc:Depends}
+Description: Infrastructure and Data Plane for the AI Lab.
+ This package provides the ClickHouse DDLs, initialization scripts,
+ and core environment configurations for the WSPR and Solar data lake.

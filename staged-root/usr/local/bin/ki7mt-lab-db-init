@@ -1,0 +1,29 @@
+#!/bin/bash
+# ==============================================================================
+# Name..........: ki7mt-ai-lab-core - Database Initializer
+# Version.......: 1.0.0
+# Build Date....: 2026-01-06 02:43:04
+# Purpose.......: Initialize ClickHouse database and schemas for the AI Lab
+# Usage.........: ki7mt-lab-db-init [--auto-confirm]
+# ==============================================================================
+set -e
+
+prefix=/usr/local
+datarootdir=${prefix}/share
+datadir=${datarootdir}
+
+# Source the renamed environment interface
+[ -f "/usr/bin/ki7mt-lab-env" ] && . /usr/bin/ki7mt-lab-env
+
+CH_CLIENT="/usr/bin/clickhouse-client"
+DDL_DIR="${datarootdir}/ki7mt-ai-lab-core/ddl"
+
+printf "${BLUE}[INIT]${NC} Starting ki7mt-ai-lab-core v1.0.0 Database Setup...\n"
+
+# Execute DDLs from the shared FHS location
+if [ -d "$DDL_DIR" ]; then
+    for sql in "$DDL_DIR"/*.sql; do
+        printf "Applying $(basename $sql)... "
+        $CH_CLIENT -n < "$sql" && printf "${GREEN}[OK]${NC}\n" || printf "${RED}[ERROR]${NC}\n"
+    done
+fi

@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+
+# Only run if we are configuring the package
+if [ "$1" = "configure" ]; then
+    echo "KI7MT AI Lab: Initializing ClickHouse Data Plane..."
+    # Use the @CLICKHOUSE@ variable from configure.ac substitution
+    /usr/bin/init-db.sh --auto-confirm || echo "Warning: DB already initialized or server unreachable."
+fi
+
+# DEBHELPER #
+exit 0

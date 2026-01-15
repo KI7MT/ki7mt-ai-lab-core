@@ -1,0 +1,21 @@
+#!/usr/bin/make -f
+
+# Main sequencer for modern Debian builds
+%:
+	dh $@ --with autoreconf
+
+# Ensure we don't run 'make check' if we havn't written tests yet
+override_dh_auto_test:
+	@echo "Skipping tests for Data Plane initialization."
+
+# Pass custom flags to the configure script
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--localstatedir=/var
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod +x debian/ki7mt-ai-lab-core/usr/bin/init-db.sh
+	chmod +x debian/ki7mt-ai-lab-core/usr/bin/set-env.sh
