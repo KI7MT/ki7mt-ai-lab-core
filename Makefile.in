@@ -96,7 +96,8 @@ am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
-	$(am__configure_deps) $(dist_ddl_DATA) $(am__DIST_COMMON)
+	$(am__configure_deps) $(dist_ddl_DATA) $(dist_doc_DATA) \
+	$(am__DIST_COMMON)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
@@ -131,7 +132,8 @@ am__uninstall_files_from_dir = { \
     || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
          $(am__cd) "$$dir" && rm -f $$files; }; \
   }
-am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(ddldir)"
+am__installdirs = "$(DESTDIR)$(bindir)" "$(DESTDIR)$(ddldir)" \
+	"$(DESTDIR)$(docdir)"
 SCRIPTS = $(bin_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -152,7 +154,7 @@ am__can_run_installinfo = \
     n|no|NO) false;; \
     *) (install-info --version) >/dev/null 2>&1;; \
   esac
-DATA = $(dist_ddl_DATA)
+DATA = $(dist_ddl_DATA) $(dist_doc_DATA)
 am__tagged_files = $(HEADERS) $(SOURCES) $(TAGS_FILES) $(LISP)
 am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/src/01-wspr_schema.sql.in \
@@ -160,7 +162,8 @@ am__DIST_COMMON = $(srcdir)/Makefile.in \
 	$(top_srcdir)/src/03-solar_silver.sql.in \
 	$(top_srcdir)/src/04-data_mgmt.sql.in \
 	$(top_srcdir)/src/ki7mt-lab-db-init.in \
-	$(top_srcdir)/src/ki7mt-lab-env.in install-sh missing
+	$(top_srcdir)/src/ki7mt-lab-env.in COPYING README.md \
+	install-sh missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -190,6 +193,7 @@ AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
 BUILD_DATE = @BUILD_DATE@
 CLICKHOUSE = @CLICKHOUSE@
+CLICKHOUSE_DATA_DIR = @CLICKHOUSE_DATA_DIR@
 COPYRIGHT = @COPYRIGHT@
 CSCOPE = @CSCOPE@
 CTAGS = @CTAGS@
@@ -290,7 +294,23 @@ dist_ddl_DATA = \
 	src/04-data_mgmt.sql
 
 
-# 4. Clean up the generated files during 'make clean'
+# 4. Documentation files to include in the distribution
+# Note: COPYING is handled by %license in RPM spec, so it's in EXTRA_DIST only
+dist_doc_DATA = README.md AUDIT_LOG.md
+
+# 5. Source template files and license to include in the distribution tarball
+EXTRA_DIST = \
+	src/01-wspr_schema.sql.in \
+	src/02-solar_indices.sql.in \
+	src/03-solar_silver.sql.in \
+	src/04-data_mgmt.sql.in \
+	src/ki7mt-lab-db-init.in \
+	src/ki7mt-lab-env.in \
+	autogen.sh \
+	COPYING
+
+
+# 6. Clean up the generated files during 'make clean'
 CLEANFILES = $(bin_SCRIPTS) $(dist_ddl_DATA)
 all: all-am
 
@@ -396,6 +416,27 @@ uninstall-dist_ddlDATA:
 	@list='$(dist_ddl_DATA)'; test -n "$(ddldir)" || list=; \
 	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
 	dir='$(DESTDIR)$(ddldir)'; $(am__uninstall_files_from_dir)
+install-dist_docDATA: $(dist_doc_DATA)
+	@$(NORMAL_INSTALL)
+	@list='$(dist_doc_DATA)'; test -n "$(docdir)" || list=; \
+	if test -n "$$list"; then \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(docdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(docdir)" || exit 1; \
+	fi; \
+	for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  echo "$$d$$p"; \
+	done | $(am__base_list) | \
+	while read files; do \
+	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(docdir)'"; \
+	  $(INSTALL_DATA) $$files "$(DESTDIR)$(docdir)" || exit $$?; \
+	done
+
+uninstall-dist_docDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_doc_DATA)'; test -n "$(docdir)" || list=; \
+	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
+	dir='$(DESTDIR)$(docdir)'; $(am__uninstall_files_from_dir)
 tags TAGS:
 
 ctags CTAGS:
@@ -578,7 +619,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(SCRIPTS) $(DATA)
 installdirs:
-	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(ddldir)"; do \
+	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(ddldir)" "$(DESTDIR)$(docdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -633,7 +674,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-dist_ddlDATA
+install-data-am: install-dist_ddlDATA install-dist_docDATA
 
 install-dvi: install-dvi-am
 
@@ -680,7 +721,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-binSCRIPTS uninstall-dist_ddlDATA
+uninstall-am: uninstall-binSCRIPTS uninstall-dist_ddlDATA \
+	uninstall-dist_docDATA
 
 .MAKE: install-am install-exec-am install-strip
 
@@ -690,20 +732,21 @@ uninstall-am: uninstall-binSCRIPTS uninstall-dist_ddlDATA
 	distcheck distclean distclean-generic distcleancheck distdir \
 	distuninstallcheck dvi dvi-am html html-am info info-am \
 	install install-am install-binSCRIPTS install-data \
-	install-data-am install-dist_ddlDATA install-dvi \
-	install-dvi-am install-exec install-exec-am install-exec-hook \
-	install-html install-html-am install-info install-info-am \
-	install-man install-pdf install-pdf-am install-ps \
-	install-ps-am install-strip installcheck installcheck-am \
-	installdirs maintainer-clean maintainer-clean-generic \
-	mostlyclean mostlyclean-generic pdf pdf-am ps ps-am tags-am \
-	uninstall uninstall-am uninstall-binSCRIPTS \
-	uninstall-dist_ddlDATA
+	install-data-am install-dist_ddlDATA install-dist_docDATA \
+	install-dvi install-dvi-am install-exec install-exec-am \
+	install-exec-hook install-html install-html-am install-info \
+	install-info-am install-man install-pdf install-pdf-am \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
+	pdf-am ps ps-am tags-am uninstall uninstall-am \
+	uninstall-binSCRIPTS uninstall-dist_ddlDATA \
+	uninstall-dist_docDATA
 
 .PRECIOUS: Makefile
 
 
-# 5. Ensure scripts are executable after installation
+# 7. Ensure scripts are executable after installation
 install-exec-hook:
 	chmod +x $(DESTDIR)$(bindir)/ki7mt-lab-db-init
 	chmod +x $(DESTDIR)$(bindir)/ki7mt-lab-env

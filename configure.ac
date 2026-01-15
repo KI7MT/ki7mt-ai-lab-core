@@ -34,19 +34,26 @@ AM_PATH_PYTHON([3.8], [], [AC_MSG_ERROR([python3 (>= 3.8) is required but not fo
 BUILD_DATE=$(date "+%Y-%m-%d %H:%M:%S")
 AC_SUBST([BUILD_DATE])
 
-# Configure WSPR Data Directory
+# Configure WSPR Data Directory (RAID-0 NVMe)
 AC_ARG_WITH([wspr-data],
-  [AS_HELP_STRING([--with-wspr-data=DIR], [Location of WSPR data (default: /opt/wspr-mcp/data)])],
+  [AS_HELP_STRING([--with-wspr-data=DIR], [Location of WSPR data (default: /mnt/ai-stack/wspr-data)])],
   [WSPR_DATA_DIR="$withval"],
-  [WSPR_DATA_DIR="/opt/wspr-mcp/data"])
+  [WSPR_DATA_DIR="/mnt/ai-stack/wspr-data"])
 AC_SUBST([WSPR_DATA_DIR])
 
 # Configure Solar Data Directory
 AC_ARG_WITH([solar-data],
-  [AS_HELP_STRING([--with-solar-data=DIR], [Location of Solar data (default: /opt/solar-mcp/data)])],
+  [AS_HELP_STRING([--with-solar-data=DIR], [Location of Solar data (default: /mnt/ai-stack/solar-data)])],
   [SOLAR_DATA_DIR="$withval"],
-  [SOLAR_DATA_DIR="/opt/solar-mcp/data"])
+  [SOLAR_DATA_DIR="/mnt/ai-stack/solar-data"])
 AC_SUBST([SOLAR_DATA_DIR])
+
+# Configure ClickHouse Data Directory (RAID-0 NVMe)
+AC_ARG_WITH([clickhouse-data],
+  [AS_HELP_STRING([--with-clickhouse-data=DIR], [Location of ClickHouse data (default: /mnt/ai-stack/clickhouse)])],
+  [CLICKHOUSE_DATA_DIR="$withval"],
+  [CLICKHOUSE_DATA_DIR="/mnt/ai-stack/clickhouse"])
+AC_SUBST([CLICKHOUSE_DATA_DIR])
 
 # --- Output ---
 AC_CONFIG_FILES([
@@ -63,9 +70,19 @@ AC_OUTPUT
 AC_MSG_NOTICE([
 
   Configuration Complete:
-  Program....: $PACKAGE_NAME
-  Version....: $PACKAGE_VERSION
-  Python.....: $PYTHON
-  ClickHouse.: $CLICKHOUSE
+  Program.........: $PACKAGE_NAME
+  Version.........: $PACKAGE_VERSION
+  Python..........: $PYTHON
+  ClickHouse......: $CLICKHOUSE
+
+  Storage Paths (RAID-0 NVMe):
+  WSPR Data.......: $WSPR_DATA_DIR
+  Solar Data......: $SOLAR_DATA_DIR
+  ClickHouse Data.: $CLICKHOUSE_DATA_DIR
+
+  Override paths with:
+    ./configure --with-wspr-data=/custom/path \\
+                --with-solar-data=/custom/path \\
+                --with-clickhouse-data=/custom/path
 
 ])

@@ -15,10 +15,25 @@ dist_ddl_DATA = \
 	src/03-solar_silver.sql \
 	src/04-data_mgmt.sql
 
-# 4. Clean up the generated files during 'make clean'
+# 4. Documentation files to include in the distribution
+# Note: COPYING is handled by %license in RPM spec, so it's in EXTRA_DIST only
+dist_doc_DATA = README.md AUDIT_LOG.md
+
+# 5. Source template files and license to include in the distribution tarball
+EXTRA_DIST = \
+	src/01-wspr_schema.sql.in \
+	src/02-solar_indices.sql.in \
+	src/03-solar_silver.sql.in \
+	src/04-data_mgmt.sql.in \
+	src/ki7mt-lab-db-init.in \
+	src/ki7mt-lab-env.in \
+	autogen.sh \
+	COPYING
+
+# 6. Clean up the generated files during 'make clean'
 CLEANFILES = $(bin_SCRIPTS) $(dist_ddl_DATA)
 
-# 5. Ensure scripts are executable after installation
+# 7. Ensure scripts are executable after installation
 install-exec-hook:
 	chmod +x $(DESTDIR)$(bindir)/ki7mt-lab-db-init
 	chmod +x $(DESTDIR)$(bindir)/ki7mt-lab-env

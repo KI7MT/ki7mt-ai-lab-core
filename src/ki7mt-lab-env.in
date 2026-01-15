@@ -3,33 +3,105 @@
 # Name..........: @PROGRAM@ - Environment Interface
 # Version.......: @VERSION@
 # Purpose.......: Standardized Environment Variables for the AI Lab
-# Usage.........: source /usr/bin/ki7mt-lab-env
+# Domain........: Infrastructure / Configuration
+# Usage.........: source /usr/local/bin/ki7mt-lab-env
+# Author........: ki7mt-ai-lab
+# ==============================================================================
+#
+# OVERRIDE PRIORITY (highest to lowest):
+#   1. Pre-existing environment variables (user-set)
+#   2. Configure-time values (./configure --with-*)
+#   3. Built-in defaults
+#
+# RAID-0 NVMe Configuration:
+#   The default ClickHouse data path is /mnt/ai-stack/clickhouse for
+#   optimal performance on RAID-0 NVMe arrays. Override via environment:
+#
+#   export CLICKHOUSE_DATA_DIR=/custom/path
+#   source /usr/local/bin/ki7mt-lab-env
+#
 # ==============================================================================
 
-prefix=@prefix@
-datarootdir=@datarootdir@
-datadir=@datadir@
+# --- Autotools-substituted paths ---
+prefix="@prefix@"
+datarootdir="@datarootdir@"
+datadir="@datadir@"
 
-# 1. ClickHouse Connection Details
+# ==============================================================================
+# 1. CLICKHOUSE CONNECTION
+# ==============================================================================
+# Override via environment for remote/clustered setups
 export CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
 export CLICKHOUSE_PORT="${CLICKHOUSE_PORT:-9000}"
 export CLICKHOUSE_USER="${CLICKHOUSE_USER:-default}"
-export CLICKHOUSE_DB="wspr"
+export CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD:-}"
+export CLICKHOUSE_DB="${CLICKHOUSE_DB:-wspr}"
 
-# 2. Lab Storage Locations (Configured via ./configure)
-# These values are baked in at build time from your EPYC server's config.
-export WSPR_DATA_DIR="@WSPR_DATA_DIR@"
-export SOLAR_DATA_DIR="@SOLAR_DATA_DIR@"
-export CLICKHOUSE_DATA_DIR="/var/lib/clickhouse"
+# ==============================================================================
+# 2. STORAGE PATHS (RAID-0 NVMe Optimized)
+# ==============================================================================
+# WSPR data directory (configure-time default or override)
+# Priority: ENV > configure --with-wspr-data > built-in default
+if [ -z "${WSPR_DATA_DIR:-}" ]; then
+    WSPR_DATA_DIR="@WSPR_DATA_DIR@"
+    # Fallback if configure didn't set it
+    [ "$WSPR_DATA_DIR" = "@WSPR_DATA_DIR@" ] && WSPR_DATA_DIR="/mnt/ai-stack/wspr-data"
+fi
+export WSPR_DATA_DIR
 
-# 3. App-Specific Pathing
-export DDL_PATH="/usr/share/@PROGRAM@/ddl"
-export LAB_LOG_DIR="/var/log/@PROGRAM@"
+# Solar data directory
+if [ -z "${SOLAR_DATA_DIR:-}" ]; then
+    SOLAR_DATA_DIR="@SOLAR_DATA_DIR@"
+    [ "$SOLAR_DATA_DIR" = "@SOLAR_DATA_DIR@" ] && SOLAR_DATA_DIR="/mnt/ai-stack/solar-data"
+fi
+export SOLAR_DATA_DIR
 
-# 4. Binary Discovery
+# ClickHouse data directory (RAID-0 NVMe mount point)
+# Default: /mnt/ai-stack/clickhouse for high-performance storage
+# Override for standard installations: /var/lib/clickhouse
+export CLICKHOUSE_DATA_DIR="${CLICKHOUSE_DATA_DIR:-/mnt/ai-stack/clickhouse}"
+
+# Sub-directories (derived from base paths)
+export WSPR_RAW_DIR="${WSPR_DATA_DIR}/raw"
+export WSPR_DOWNLOAD_DIR="${WSPR_DATA_DIR}/downloads"
+export SOLAR_RAW_DIR="${SOLAR_DATA_DIR}/raw"
+
+# ==============================================================================
+# 3. APPLICATION PATHS (FHS-Compliant)
+# ==============================================================================
+# DDL schemas
+export DDL_PATH="${datadir}/@PROGRAM@/ddl"
+
+# Log directory
+export LAB_LOG_DIR="${LAB_LOG_DIR:-/var/log/@PROGRAM@}"
+
+# Configuration directory
+export LAB_CONF_DIR="${LAB_CONF_DIR:-@sysconfdir@}"
+
+# ==============================================================================
+# 4. BINARY DISCOVERY
+# ==============================================================================
 export CH_CLIENT_BIN="@CLICKHOUSE@"
 
+# ==============================================================================
+# 5. PERFORMANCE TUNING (Optional Overrides)
+# ==============================================================================
+# Memory allocation for ingestion (GB)
+export INGEST_RAM_GB="${INGEST_RAM_GB:-64}"
+
+# Worker threads for parallel operations
+export INGEST_WORKERS="${INGEST_WORKERS:-16}"
+
+# Batch size for ClickHouse inserts
+export INGEST_BATCH_SIZE="${INGEST_BATCH_SIZE:-100000}"
+
+# ==============================================================================
+# INTERACTIVE SHELL MESSAGE
+# ==============================================================================
 if [[ $- == *i* ]]; then
-    echo "KI7MT AI Lab Environment (@VERSION@) Loaded."
-    echo "WSPR Path: $WSPR_DATA_DIR"
+    printf "KI7MT AI Lab Environment (@VERSION@) Loaded.\n"
+    printf "  WSPR Data.......: %s\n" "$WSPR_DATA_DIR"
+    printf "  Solar Data......: %s\n" "$SOLAR_DATA_DIR"
+    printf "  ClickHouse Data.: %s\n" "$CLICKHOUSE_DATA_DIR"
+    printf "  ClickHouse Host.: %s:%s\n" "$CLICKHOUSE_HOST" "$CLICKHOUSE_PORT"
 fi

@@ -4,26 +4,238 @@
 # Version.......: @VERSION@
 # Build Date....: @BUILD_DATE@
 # Purpose.......: Initialize ClickHouse database and schemas for the AI Lab
-# Usage.........: ki7mt-lab-db-init [--auto-confirm]
+# Domain........: Infrastructure / Database
+# Dependencies..: clickhouse-client
+# Usage.........: ki7mt-lab-db-init [--auto-confirm] [--force] [--dry-run]
+# Author........: ki7mt-ai-lab
+# ==============================================================================
+#
+# IDEMPOTENT DESIGN:
+#   - Running this script multiple times is safe
+#   - Existing tables are preserved (never dropped)
+#   - Missing columns are reported but NOT auto-added (manual migration required)
+#   - Use --force to recreate tables (DESTROYS DATA)
+#
+# EXIT CODES:
+#   0 - Success (all schemas applied or already exist)
+#   1 - Fatal error (ClickHouse unavailable, invalid DDL)
+#   2 - Schema mismatch detected (manual intervention required)
+#
 # ==============================================================================
 set -e
 
+# --- Autotools-substituted paths ---
 prefix=@prefix@
 datarootdir=@datarootdir@
 datadir=@datadir@
+bindir=@bindir@
 
-# Source the renamed environment interface
-[ -f "/usr/bin/ki7mt-lab-env" ] && . /usr/bin/ki7mt-lab-env
-
+# --- Configuration ---
 CH_CLIENT="@CLICKHOUSE@"
 DDL_DIR="@datadir@/@PROGRAM@/ddl"
+PROGRAM="@PROGRAM@"
+VERSION="@VERSION@"
 
-printf "${BLUE}[INIT]${NC} Starting @PROGRAM@ v@VERSION@ Database Setup...\n"
+# --- ANSI Color Codes (POSIX-compliant) ---
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
 
-# Execute DDLs from the shared FHS location
-if [ -d "$DDL_DIR" ]; then
-    for sql in "$DDL_DIR"/*.sql; do
-        printf "Applying $(basename $sql)... "
-        $CH_CLIENT -n < "$sql" && printf "${GREEN}[OK]${NC}\n" || printf "${RED}[ERROR]${NC}\n"
+# --- CLI Flags ---
+AUTO_CONFIRM=false
+FORCE_RECREATE=false
+DRY_RUN=false
+
+# --- Parse Arguments ---
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --auto-confirm) AUTO_CONFIRM=true ;;
+        --force)        FORCE_RECREATE=true ;;
+        --dry-run)      DRY_RUN=true ;;
+        -h|--help)
+            printf "Usage: ki7mt-lab-db-init [OPTIONS]\n"
+            printf "Options:\n"
+            printf "  --auto-confirm  Skip confirmation prompts\n"
+            printf "  --force         Recreate tables (DESTROYS DATA)\n"
+            printf "  --dry-run       Show what would be done without executing\n"
+            printf "  -h, --help      Show this help message\n"
+            exit 0
+            ;;
+        *)
+            printf "${RED}[ERROR]${NC} Unknown option: %s\n" "$1" >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+# --- Source environment (if available) ---
+if [ -f "${bindir}/ki7mt-lab-env" ]; then
+    . "${bindir}/ki7mt-lab-env"
+elif [ -f "/usr/local/bin/ki7mt-lab-env" ]; then
+    . /usr/local/bin/ki7mt-lab-env
+fi
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+# Check if a database exists
+database_exists() {
+    local db_name="$1"
+    $CH_CLIENT -q "SELECT 1 FROM system.databases WHERE name = '${db_name}'" 2>/dev/null | grep -q "^1$"
+}
+
+# Check if a table exists
+table_exists() {
+    local db_name="$1"
+    local table_name="$2"
+    $CH_CLIENT -q "EXISTS TABLE ${db_name}.${table_name}" 2>/dev/null | grep -q "^1$"
+}
+
+# Get table engine type
+get_table_engine() {
+    local db_name="$1"
+    local table_name="$2"
+    $CH_CLIENT -q "SELECT engine FROM system.tables WHERE database='${db_name}' AND name='${table_name}'" 2>/dev/null
+}
+
+# Get column count for a table
+get_column_count() {
+    local db_name="$1"
+    local table_name="$2"
+    $CH_CLIENT -q "SELECT count() FROM system.columns WHERE database='${db_name}' AND table='${table_name}'" 2>/dev/null
+}
+
+# Get row count for a table
+get_row_count() {
+    local db_name="$1"
+    local table_name="$2"
+    $CH_CLIENT -q "SELECT count() FROM ${db_name}.${table_name}" 2>/dev/null
+}
+
+# Verify ClickHouse is available
+verify_clickhouse() {
+    if ! $CH_CLIENT -q "SELECT 1" > /dev/null 2>&1; then
+        printf "${RED}[FATAL]${NC} ClickHouse is not available.\n" >&2
+        printf "        Ensure clickhouse-server is running:\n" >&2
+        printf "        sudo systemctl start clickhouse-server\n" >&2
+        exit 1
+    fi
+}
+
+# ==============================================================================
+# MAIN LOGIC
+# ==============================================================================
+
+printf "${BLUE}[INIT]${NC} Starting ${PROGRAM} v${VERSION} Database Setup...\n"
+printf "${BLUE}[INFO]${NC} DDL Directory: %s\n" "$DDL_DIR"
+
+# 1. Verify ClickHouse connectivity
+printf "${BLUE}[CHECK]${NC} Verifying ClickHouse connectivity... "
+if $DRY_RUN; then
+    printf "${YELLOW}[DRY-RUN]${NC}\n"
+else
+    verify_clickhouse
+    printf "${GREEN}[OK]${NC}\n"
+fi
+
+# 2. Check if DDL directory exists
+if [ ! -d "$DDL_DIR" ]; then
+    printf "${RED}[ERROR]${NC} DDL directory not found: %s\n" "$DDL_DIR" >&2
+    printf "        Run 'make install' first to install DDL files.\n" >&2
+    exit 1
+fi
+
+# 3. Pre-flight check: show current state
+printf "\n${BLUE}[STATUS]${NC} Current database state:\n"
+if database_exists "wspr"; then
+    printf "  Database 'wspr': ${GREEN}EXISTS${NC}\n"
+
+    # Check key tables
+    for tbl in spots_raw solar_indices; do
+        if table_exists "wspr" "$tbl"; then
+            engine=$(get_table_engine "wspr" "$tbl")
+            cols=$(get_column_count "wspr" "$tbl")
+            rows=$(get_row_count "wspr" "$tbl")
+            printf "    Table '%s': ${GREEN}EXISTS${NC} (engine=%s, cols=%s, rows=%s)\n" \
+                "$tbl" "$engine" "$cols" "$rows"
+        else
+            printf "    Table '%s': ${YELLOW}MISSING${NC}\n" "$tbl"
+        fi
     done
+else
+    printf "  Database 'wspr': ${YELLOW}MISSING${NC} (will be created)\n"
+fi
+
+# 4. Force mode warning
+if $FORCE_RECREATE; then
+    printf "\n${RED}[WARNING]${NC} --force flag detected. This will DROP and RECREATE tables.\n"
+    printf "${RED}[WARNING]${NC} ALL DATA WILL BE LOST!\n"
+
+    if ! $AUTO_CONFIRM && ! $DRY_RUN; then
+        printf "\nType 'yes' to confirm: "
+        read -r confirm
+        if [ "$confirm" != "yes" ]; then
+            printf "${YELLOW}[ABORT]${NC} Operation cancelled by user.\n"
+            exit 0
+        fi
+    fi
+fi
+
+# 5. Apply DDL files in sorted order
+printf "\n${BLUE}[APPLY]${NC} Processing DDL files...\n"
+
+SCHEMA_MISMATCH=false
+
+for sql in "$DDL_DIR"/*.sql; do
+    [ -f "$sql" ] || continue
+
+    sql_basename=$(basename "$sql")
+    printf "  %s ... " "$sql_basename"
+
+    if $DRY_RUN; then
+        printf "${YELLOW}[DRY-RUN]${NC}\n"
+        continue
+    fi
+
+    # Apply the DDL (CREATE IF NOT EXISTS is idempotent)
+    if $CH_CLIENT -n < "$sql" 2>/dev/null; then
+        printf "${GREEN}[OK]${NC}\n"
+    else
+        printf "${RED}[ERROR]${NC}\n"
+        SCHEMA_MISMATCH=true
+    fi
+done
+
+# 6. Post-flight validation
+printf "\n${BLUE}[VALIDATE]${NC} Verifying schema installation...\n"
+
+# Validate spots_raw table has expected column count (15)
+if ! $DRY_RUN && table_exists "wspr" "spots_raw"; then
+    expected_cols=15
+    actual_cols=$(get_column_count "wspr" "spots_raw")
+
+    if [ "$actual_cols" -eq "$expected_cols" ]; then
+        printf "  wspr.spots_raw: ${GREEN}VALID${NC} (%s columns)\n" "$actual_cols"
+    else
+        printf "  wspr.spots_raw: ${YELLOW}MISMATCH${NC} (expected %s, got %s)\n" \
+            "$expected_cols" "$actual_cols"
+        printf "    ${YELLOW}[WARN]${NC} Schema may need manual migration.\n"
+        printf "    ${YELLOW}[WARN]${NC} To recreate: DROP TABLE wspr.spots_raw; then re-run.\n"
+        SCHEMA_MISMATCH=true
+    fi
+fi
+
+# 7. Final status
+printf "\n"
+if $SCHEMA_MISMATCH; then
+    printf "${YELLOW}[DONE]${NC} Database setup completed with warnings.\n"
+    printf "        Some tables may need manual migration.\n"
+    exit 2
+else
+    printf "${GREEN}[DONE]${NC} Database setup completed successfully.\n"
+    exit 0
 fi

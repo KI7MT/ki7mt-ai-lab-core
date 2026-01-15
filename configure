@@ -617,6 +617,7 @@ PACKAGE_URL='https://github.com/KI7MT/ki7mt-ai-lab-core'
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+CLICKHOUSE_DATA_DIR
 SOLAR_DATA_DIR
 WSPR_DATA_DIR
 BUILD_DATE
@@ -712,6 +713,7 @@ with_python_prefix
 with_python_exec_prefix
 with_wspr_data
 with_solar_data
+with_clickhouse_data
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1352,9 +1354,13 @@ Optional Packages:
   --with-python_prefix    override the default PYTHON_PREFIX
   --with-python_exec_prefix
                           override the default PYTHON_EXEC_PREFIX
-  --with-wspr-data=DIR    Location of WSPR data (default: /opt/wspr-mcp/data)
+  --with-wspr-data=DIR    Location of WSPR data (default:
+                          /mnt/ai-stack/wspr-data)
   --with-solar-data=DIR   Location of Solar data (default:
-                          /opt/solar-mcp/data)
+                          /mnt/ai-stack/solar-data)
+  --with-clickhouse-data=DIR
+                          Location of ClickHouse data (default:
+                          /mnt/ai-stack/clickhouse)
 
 Some influential environment variables:
   PYTHON      the Python interpreter
@@ -2637,7 +2643,7 @@ then :
   printf %s "(cached) " >&6
 else $as_nop
 
-	for am_cv_pathless_PYTHON in python python2 python3  python3.11 python3.10  python3.9 python3.8 python3.7 python3.6 python3.5 python3.4 python3.3  python3.2 python3.1 python3.0  python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1  python2.0 none; do
+	for am_cv_pathless_PYTHON in python python2 python3  python3.9 python3.8 python3.7 python3.6 python3.5 python3.4 python3.3  python3.2 python3.1 python3.0  python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1  python2.0 none; do
 	  test "$am_cv_pathless_PYTHON" = none && break
 	  prog="import sys
 # split strings by '.' and convert to numeric.  Append some zeros
@@ -2915,14 +2921,7 @@ else $as_nop
    am_cv_python_pythondir=`$PYTHON -c "
 $am_python_setup_sysconfig
 if can_use_sysconfig:
-  if hasattr(sysconfig, 'get_default_scheme'):
-    scheme = sysconfig.get_default_scheme()
-  else:
-    scheme = sysconfig._get_default_scheme()
-  if scheme == 'posix_local':
-    # Debian's default scheme installs to /usr/local/ but we want to find headers in /usr/
-    scheme = 'posix_prefix'
-  sitedir = sysconfig.get_path('purelib', scheme, vars={'base':'$am_py_prefix'})
+  sitedir = sysconfig.get_path('purelib', vars={'base':'$am_py_prefix'})
 else:
   from distutils import sysconfig
   sitedir = sysconfig.get_python_lib(0, 0, prefix='$am_py_prefix')
@@ -2965,14 +2964,7 @@ else $as_nop
    am_cv_python_pyexecdir=`$PYTHON -c "
 $am_python_setup_sysconfig
 if can_use_sysconfig:
-  if hasattr(sysconfig, 'get_default_scheme'):
-    scheme = sysconfig.get_default_scheme()
-  else:
-    scheme = sysconfig._get_default_scheme()
-  if scheme == 'posix_local':
-    # Debian's default scheme installs to /usr/local/ but we want to find headers in /usr/
-    scheme = 'posix_prefix'
-  sitedir = sysconfig.get_path('platlib', scheme, vars={'platbase':'$am_py_exec_prefix'})
+  sitedir = sysconfig.get_path('platlib', vars={'platbase':'$am_py_exec_prefix'})
 else:
   from distutils import sysconfig
   sitedir = sysconfig.get_python_lib(1, 0, prefix='$am_py_exec_prefix')
@@ -3009,14 +3001,14 @@ printf "%s\n" "$am_cv_python_pyexecdir" >&6; }
 BUILD_DATE=$(date "+%Y-%m-%d %H:%M:%S")
 
 
-# Configure WSPR Data Directory
+# Configure WSPR Data Directory (RAID-0 NVMe)
 
 # Check whether --with-wspr-data was given.
 if test ${with_wspr_data+y}
 then :
   withval=$with_wspr_data; WSPR_DATA_DIR="$withval"
 else $as_nop
-  WSPR_DATA_DIR="/opt/wspr-mcp/data"
+  WSPR_DATA_DIR="/mnt/ai-stack/wspr-data"
 fi
 
 
@@ -3028,7 +3020,19 @@ if test ${with_solar_data+y}
 then :
   withval=$with_solar_data; SOLAR_DATA_DIR="$withval"
 else $as_nop
-  SOLAR_DATA_DIR="/opt/solar-mcp/data"
+  SOLAR_DATA_DIR="/mnt/ai-stack/solar-data"
+fi
+
+
+
+# Configure ClickHouse Data Directory (RAID-0 NVMe)
+
+# Check whether --with-clickhouse-data was given.
+if test ${with_clickhouse_data+y}
+then :
+  withval=$with_clickhouse_data; CLICKHOUSE_DATA_DIR="$withval"
+else $as_nop
+  CLICKHOUSE_DATA_DIR="/mnt/ai-stack/clickhouse"
 fi
 
 
@@ -4220,18 +4224,38 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}:
 
   Configuration Complete:
-  Program....: $PACKAGE_NAME
-  Version....: $PACKAGE_VERSION
-  Python.....: $PYTHON
-  ClickHouse.: $CLICKHOUSE
+  Program.........: $PACKAGE_NAME
+  Version.........: $PACKAGE_VERSION
+  Python..........: $PYTHON
+  ClickHouse......: $CLICKHOUSE
+
+  Storage Paths (RAID-0 NVMe):
+  WSPR Data.......: $WSPR_DATA_DIR
+  Solar Data......: $SOLAR_DATA_DIR
+  ClickHouse Data.: $CLICKHOUSE_DATA_DIR
+
+  Override paths with:
+    ./configure --with-wspr-data=/custom/path \\
+                --with-solar-data=/custom/path \\
+                --with-clickhouse-data=/custom/path
 
 " >&5
 printf "%s\n" "$as_me:
 
   Configuration Complete:
-  Program....: $PACKAGE_NAME
-  Version....: $PACKAGE_VERSION
-  Python.....: $PYTHON
-  ClickHouse.: $CLICKHOUSE
+  Program.........: $PACKAGE_NAME
+  Version.........: $PACKAGE_VERSION
+  Python..........: $PYTHON
+  ClickHouse......: $CLICKHOUSE
+
+  Storage Paths (RAID-0 NVMe):
+  WSPR Data.......: $WSPR_DATA_DIR
+  Solar Data......: $SOLAR_DATA_DIR
+  ClickHouse Data.: $CLICKHOUSE_DATA_DIR
+
+  Override paths with:
+    ./configure --with-wspr-data=/custom/path \\
+                --with-solar-data=/custom/path \\
+                --with-clickhouse-data=/custom/path
 
 " >&6;}
