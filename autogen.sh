@@ -1,71 +1,73 @@
 #!/bin/bash
 # ==============================================================================
-# Script Name: autogen.sh
-# Purpose:     Bootstrap Autotools for ki7mt-ai-lab-core (printf Edition)
-# Copyright:   Copyright (C) 2014-2026, Greg Beam, KI7MT
+# Name..........: autogen.sh
+# Project.......: ki7mt-ai-lab-core
+# Version.......: 1.0.0
+# Purpose.......: Bootstrap Autotools for KI7MT AI Lab Core
+# Target OS.....: Rocky Linux 9.x / RHEL 9.x (el9)
+# Author........: Greg Beam, KI7MT
 # ==============================================================================
 set -e
 
-BASED=$(pwd)
 PROGRAM="ki7mt-ai-lab-core"
 
-# Foreground colors with explicit reset sequences
-# \033[0m ensures we start with no previous attributes
+# ANSI Color Codes
 C_R='\033[0;31m'    # Red
 C_G='\033[0;32m'    # Green
 C_Y='\033[0;33m'    # Yellow
-C_NC='\033[0m'      # Reset / No Color
+C_B='\033[0;34m'    # Blue
+C_NC='\033[0m'      # Reset
 
 # ------------------------------------------------------------------------------
 # Dependency Check Function
 # ------------------------------------------------------------------------------
 check_dep() {
     if ! command -v "$1" >/dev/null 2>&1; then
-        # Use %b for the color variable and %s for the message
-        printf "%bDEPENDENCY ERROR:%b %s\n" "${C_R}" "${C_NC}" "$1 is not installed."
-        [ -n "$2" ] && printf "Hint: %s\n" "$2"
+        printf "%b[ERROR]%b %s is not installed.\n" "${C_R}" "${C_NC}" "$1"
+        [ -n "$2" ] && printf "  Hint: %s\n" "$2"
         exit 1
     fi
 }
 
-# 1. Check for Standard Build Tools
-check_dep "lsb_release" "sudo apt-get install lsb-release (Debian) or yum install redhat-lsb (Fedora)"
-check_dep "autoconf"    "sudo apt-get install autoconf"
-check_dep "automake"    "sudo apt-get install automake"
-check_dep "libtoolize"  "sudo apt-get install libtool"
+# ------------------------------------------------------------------------------
+# Check Build Dependencies
+# ------------------------------------------------------------------------------
+printf "%b[CHECK]%b Verifying build dependencies...\n" "${C_B}" "${C_NC}"
 
-# 2. Lab Foundation Check (ClickHouse)
-check_dep "clickhouse-client" "Install via: sudo apt-get install clickhouse-common-static"
+check_dep "autoconf"        "dnf install autoconf"
+check_dep "automake"        "dnf install automake"
+check_dep "clickhouse-client" "dnf install clickhouse-common-static"
+
+printf "%b[OK]%b All dependencies satisfied.\n" "${C_G}" "${C_NC}"
 
 # ------------------------------------------------------------------------------
 # Bootstrap Process
 # ------------------------------------------------------------------------------
-printf "%bBootstrapping %s build system...%b\n" "${C_Y}" "$PROGRAM" "${C_NC}"
+printf "\n%b[BOOTSTRAP]%b Initializing %s build system...\n" "${C_Y}" "${C_NC}" "$PROGRAM"
+
+# Create build-aux directory for Autotools helper scripts
+mkdir -p build-aux
 
 # Clean up old artifacts if they exist
 if [ -f "./Makefile" ] && [ -f "./configure" ]; then
-    printf "\n"
-    printf "* Found old build files, running make clean...\n"
-    printf "\n"
-    make -s clean || true
+    printf "%b[CLEAN]%b Removing old build files...\n" "${C_B}" "${C_NC}"
+    make -s clean 2>/dev/null || true
+    make -s distclean 2>/dev/null || true
 fi
 
 # Run autoreconf
-printf "%bRunning autoreconf --install --force...%b\n" "${C_G}" "${C_NC}"
-autoreconf --install --force --verbose
+printf "%b[AUTORECONF]%b Generating configure script...\n" "${C_B}" "${C_NC}"
+autoreconf --install --force
 
 # ------------------------------------------------------------------------------
-# Final Configuration
+# Run Configure
 # ------------------------------------------------------------------------------
 if [ -s "./configure" ]; then
-    printf "%b* Successfully generated configure script.%b\n" "${C_G}" "${C_NC}"
-    printf "\n"
-    printf "Running configure with defaults: ./configure %s\n\n" "$*"
+    printf "%b[OK]%b Configure script generated successfully.\n" "${C_G}" "${C_NC}"
+    printf "\n%b[CONFIGURE]%b Running ./configure %s\n\n" "${C_B}" "${C_NC}" "$*"
     ./configure "$@"
 else
-    prinf "\n"
-    printf "%bERROR:%b Configure script generation failed.\n" "${C_R}" "${C_NC}"
-    prinf "\n"
+    printf "\n%b[ERROR]%b Configure script generation failed.\n" "${C_R}" "${C_NC}"
     exit 1
 fi
 

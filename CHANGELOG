@@ -1,0 +1,12 @@
+# Changelog - KI7MT AI Lab Core
+
+All notable changes to this project will be documented in this file.
+
+## [1.0.0] - 2026-01-15
+### Added
+- Initial release of the Autotools + RPM hybrid build system.
+- Optimized ClickHouse schemas for 10.8B WSPR spot archive.
+- Solar index views for SFI/SSN correlation.
+- Maidenhead-to-Coordinate UDF placeholder (05-geo_functions.sql.in).
+- Database initialization utility: ki7mt-lab-db-init.
+- Support for Rocky Linux 9 / EPEL 9 builds.
