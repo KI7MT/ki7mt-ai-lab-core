@@ -1,191 +1,267 @@
 # ki7mt-ai-lab-core
 
-**Core Foundation for the KI7MT AI Lab WSPR/Solar Analysis Platform**
+**Core ClickHouse schemas and environment setup for the KI7MT AI Lab**
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Platform: Rocky Linux 9](https://img.shields.io/badge/Platform-Rocky%20Linux%209-green.svg)](https://rockylinux.org/)
+[![COPR](https://img.shields.io/badge/COPR-ki7mt%2Fai--lab-blue)](https://copr.fedorainfracloud.org/coprs/ki7mt/ai-lab/)
+[![Platform: EL9](https://img.shields.io/badge/Platform-EL9-green.svg)](https://rockylinux.org/)
+
+## Package Contents
+
+This package installs:
+
+| File | Path | Description |
+|------|------|-------------|
+| `ki7mt-lab-db-init` | `/usr/bin/` | Database initialization script |
+| `ki7mt-lab-env` | `/usr/bin/` | Environment variables setup |
+| `*.sql` (5 files) | `/usr/share/ki7mt-ai-lab-core/ddl/` | ClickHouse DDL schemas |
+
+### Database Schemas
+
+| Schema | Table/View | Purpose |
+|--------|------------|---------|
+| `01-wspr_schema.sql` | `wspr.spots_raw` | 15-column WSPR spot data (MergeTree, partitioned by month) |
+| `02-solar_indices.sql` | `wspr.solar_indices` | Solar flux indices from NOAA |
+| `03-solar_silver.sql` | `wspr.solar_silver` | Curated daily solar aggregates |
+| `04-data_mgmt.sql` | `wspr.data_mgmt` | Pipeline configuration key-value store |
+| `05-geo_functions.sql` | (functions) | Geographic calculation UDFs |
 
 ---
 
-## What Is This?
+## Installation
 
-This package provides the **database foundation** for analyzing 18 years of amateur radio propagation data—over **11 billion WSPR spot records**—correlated with solar flux indices to understand how space weather affects HF radio propagation.
-
-If you're a ham radio operator curious about propagation patterns, band openings, or the relationship between solar activity and signal propagation, this is your starting point.
-
----
-
-## The Scale
-
-| Metric | Value |
-|--------|-------|
-| **Time Span** | 2008–2026 (18 years) |
-| **Total Records** | ~11 billion WSPR spots |
-| **Daily Ingestion** | ~2-3 million new spots |
-| **Storage Required** | ~800GB compressed |
-| **Query Performance** | Sub-second on indexed queries |
-
-This isn't a toy dataset—it's the complete historical record of weak signal propagation reports from the global WSPRnet network.
-
----
-
-## Quick Start
-
-### Prerequisites
-
-1. **Rocky Linux 9.x** (or RHEL 9.x / AlmaLinux 9.x)
-2. **ClickHouse** installed and running:
-   ```bash
-   sudo dnf install -y clickhouse-server clickhouse-client
-   sudo systemctl enable --now clickhouse-server
-   ```
-
-### Installation from COPR (Recommended)
+### From COPR (Recommended)
 
 ```bash
-# Enable the COPR repository
+# Enable the repository
 sudo dnf copr enable ki7mt/ai-lab
 
-# Install the package
+# Install
 sudo dnf install ki7mt-ai-lab-core
-
-# Initialize database
-sudo ki7mt-lab-db-init
 ```
 
-### Building from Source (rpkg)
+### From Source (rpkg)
 
 ```bash
-# Clone the repository
 git clone https://github.com/KI7MT/ki7mt-ai-lab.git
 cd ki7mt-ai-lab/ki7mt-ai-lab-core
-
-# Build with rpkg (version from git tags)
 rpkg local
-
-# Install the resulting RPM
 sudo dnf install ./noarch/*.rpm
-
-# Initialize database
-sudo ki7mt-lab-db-init
 ```
 
+---
+
+## Usage
+
+### 1. Start ClickHouse
+
+```bash
+# Install ClickHouse if not already installed
+sudo dnf install -y clickhouse-server clickhouse-client
+
+# Start the service
+sudo systemctl enable --now clickhouse-server
+
+# Verify it's running
+clickhouse-client --query="SELECT version()"
+```
+
+### 2. Initialize the Database
+
+```bash
+# Run the initialization script
+ki7mt-lab-db-init
+```
+
+**Options:**
+```
+--dry-run        Show what would be done without executing
+--force          Drop and recreate tables (DESTROYS DATA)
+--auto-confirm   Skip confirmation prompts (for automation)
+```
+
+**Example output:**
+```
+[INIT] Starting ki7mt-ai-lab-core v1.0.4 Database Setup...
+[INFO] DDL Directory: /usr/share/ki7mt-ai-lab-core/ddl
+[CHECK] Verifying ClickHouse connectivity... [OK]
+
+[STATUS] Current database state:
+  Database 'wspr': MISSING (will be created)
+
+[APPLY] Processing DDL files...
+  01-wspr_schema.sql ... [OK]
+  02-solar_indices.sql ... [OK]
+  03-solar_silver.sql ... [OK]
+  04-data_mgmt.sql ... [OK]
+  05-geo_functions.sql ... [OK]
+
+[VALIDATE] Verifying schema installation...
+  wspr.spots_raw: VALID (15 columns)
+
+[DONE] Database setup completed successfully.
+```
+
+### 3. Load Environment Variables
+
+```bash
+# Source the environment (add to ~/.bashrc for persistence)
+source /usr/bin/ki7mt-lab-env
+```
+
+**Variables exported:**
+```
+CLICKHOUSE_HOST=localhost
+CLICKHOUSE_PORT=9000
+CLICKHOUSE_DB=wspr
+WSPR_DATA_DIR=/mnt/ai-stack/wspr-data
+SOLAR_DATA_DIR=/mnt/ai-stack/solar-data
+CLICKHOUSE_DATA_DIR=/mnt/ai-stack/clickhouse
+DDL_PATH=/usr/share/ki7mt-ai-lab-core/ddl
+```
+
+**Override defaults before sourcing:**
+```bash
+export WSPR_DATA_DIR=/var/lib/wspr
+export CLICKHOUSE_DATA_DIR=/var/lib/clickhouse
+source /usr/bin/ki7mt-lab-env
+```
+
+---
+
+## Testing Locally
+
 ### Verify Installation
+
+```bash
+# Check package is installed
+rpm -q ki7mt-ai-lab-core
+
+# Check files are in place
+ls -la /usr/bin/ki7mt-lab-*
+ls -la /usr/share/ki7mt-ai-lab-core/ddl/
+```
+
+### Verify Database
 
 ```bash
 # Check database exists
 clickhouse-client --query="SHOW DATABASES" | grep wspr
 
-# Check table schema (should show 15 columns)
+# Check tables were created
+clickhouse-client --query="SHOW TABLES FROM wspr"
+
+# Verify spots_raw schema (should show 15 columns)
 clickhouse-client --query="DESCRIBE TABLE wspr.spots_raw"
 
-# Check environment is loaded
+# Check table is empty but ready
+clickhouse-client --query="SELECT count() FROM wspr.spots_raw"
+```
+
+### Test Idempotency
+
+The init script is idempotent - running it multiple times is safe:
+
+```bash
+# Run again - should report tables exist
+ki7mt-lab-db-init
+
+# Expected output:
+# [STATUS] Current database state:
+#   Database 'wspr': EXISTS
+#     Table 'spots_raw': EXISTS (engine=MergeTree, cols=15, rows=0)
+```
+
+### Test Environment Script
+
+```bash
+# Source and check variables
 source /usr/bin/ki7mt-lab-env
+echo "DDL Path: $DDL_PATH"
 echo "WSPR Data: $WSPR_DATA_DIR"
+
+# Verify DDL files are accessible
+ls $DDL_PATH
 ```
 
----
-
-## What's Included
-
-### Database Schemas
-
-| Table | Purpose | Columns |
-|-------|---------|---------|
-| `wspr.spots_raw` | Raw WSPR spot data | 15 (optimized types) |
-| `wspr.solar_indices` | Solar flux indices | 12 |
-| `wspr.solar_silver` | Curated solar data | 9 |
-
-### Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `ki7mt-lab-db-init` | Initialize/verify database schemas (idempotent) |
-| `ki7mt-lab-env` | Set environment variables for data paths |
-
-### Schema Optimizations
-
-The WSPR schema uses ClickHouse-specific optimizations for 11B+ rows:
-
-- **LowCardinality(String)** for callsigns and grids (~500K unique values)
-- **UInt64** for frequency (Hz precision, no floating-point errors)
-- **MergeTree** engine with monthly partitioning
-- **ORDER BY (timestamp, band, callsign)** for propagation queries
-
----
-
-## Storage Layout
-
-Default paths assume RAID-0 NVMe at `/mnt/ai-stack`:
-
-```
-/mnt/ai-stack/
-├── wspr-data/          # WSPR archives and processed data
-│   ├── raw/            # Downloaded CSV.gz files
-│   └── downloads/      # Staging area
-├── solar-data/         # Solar flux indices
-│   └── raw/            # NOAA data files
-└── clickhouse/         # ClickHouse data directory
-```
-
-Override via environment variables before sourcing `ki7mt-lab-env`.
-
----
-
-## Configuration
-
-### Environment Variables
-
-After installation, source the environment:
+### Test with Sample Data
 
 ```bash
-source /usr/bin/ki7mt-lab-env
-```
+# Insert a test record
+clickhouse-client --query="
+INSERT INTO wspr.spots_raw VALUES (
+    1,                          -- id
+    '2024-01-15 12:30:00',      -- timestamp
+    'KI7MT',                    -- reporter
+    'DN26',                     -- reporter_grid
+    -15,                        -- snr
+    14097100,                   -- frequency (Hz)
+    'W1AW',                     -- callsign
+    'FN31',                     -- grid
+    37,                         -- power (dBm)
+    0,                          -- drift
+    3842,                       -- distance (km)
+    75,                         -- azimuth
+    20,                         -- band
+    '2.6.1',                    -- version
+    0                           -- code
+)"
 
-This exports:
-- `WSPR_DATA_DIR` - WSPR data root
-- `SOLAR_DATA_DIR` - Solar data root
-- `CLICKHOUSE_DATA_DIR` - ClickHouse storage
-- `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT` - Connection details
-- `INGEST_RAM_GB`, `INGEST_WORKERS` - Performance tuning
+# Query it back
+clickhouse-client --query="
+SELECT callsign, reporter, distance, snr
+FROM wspr.spots_raw
+WHERE id = 1"
 
-### Override Example
-
-```bash
-export CLICKHOUSE_DATA_DIR=/var/lib/clickhouse
-export WSPR_DATA_DIR=/var/lib/wspr
-source /usr/bin/ki7mt-lab-env
+# Clean up test data
+clickhouse-client --query="ALTER TABLE wspr.spots_raw DELETE WHERE id = 1"
 ```
 
 ---
 
-## Version Management
-
-Version is derived from git tags using rpkg:
+## Uninstall
 
 ```bash
-# Bump version and create tag
-./bump-version 1.0.5
+# Remove package (keeps database)
+sudo dnf remove ki7mt-ai-lab-core
 
-# Push to remote
+# To also remove the database:
+clickhouse-client --query="DROP DATABASE IF EXISTS wspr"
+```
+
+---
+
+## Development
+
+### Version Management
+
+```bash
+# Bump version and create git tag
+./bump-version 1.1.0
+
+# Push to trigger COPR rebuild
 git push && git push --tags
 ```
 
-The spec file uses `{{{ git_dir_version }}}` to automatically pick up the version from git tags.
+### Build Locally
+
+```bash
+rpkg local                    # Build RPM
+rpkg lint                     # Check spec file
+rpkg srpm                     # Create source RPM
+```
 
 ---
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0** - see the [COPYING](COPYING) file for details.
+GPL-3.0-or-later - See [COPYING](COPYING)
 
 ## Author
 
-**Greg Beam, KI7MT**
-Amateur Radio Operator & Software Engineer
+Greg Beam, KI7MT
 
----
+## Links
 
-## Support
-
+- **COPR:** https://copr.fedorainfracloud.org/coprs/ki7mt/ai-lab/
 - **Issues:** https://github.com/KI7MT/ki7mt-ai-lab/issues
