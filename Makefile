@@ -30,7 +30,9 @@ SCHEMAS  := $(wildcard src/*.sql)
 .DEFAULT_GOAL := help
 
 help:
-	@printf "$(NAME) v$(VERSION) - Local Development Makefile\n"
+	@printf "\n"
+	@printf "Package : $(NAME)\n"
+	@printf "Version : $(VERSION)\n"
 	@printf "\n"
 	@printf "Usage: make [target]\n"
 	@printf "\n"
