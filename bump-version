@@ -1,28 +1,65 @@
 #!/bin/bash
 set -e
 
-# Purpose: Bump version and create git tag for rpkg builds
-# Usage: ./bump-version <new-version>
+# Purpose: Bump version, create git tag, and optionally push to remotes
+# Usage: ./bump-version <new-version> [--push]
 # Example: ./bump-version 1.0.5
+#          ./bump-version 1.0.5 --push
 #
 # This script:
 #   1. Updates the VERSION file
 #   2. Updates the spec file Version: line
 #   3. Commits the changes
 #   4. Creates a git tag (vX.Y.Z format)
+#   5. (with --push) Pushes commits and tags to origin and github
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 VERSION_FILE="$SCRIPT_DIR/VERSION"
 SPEC_FILE="$SCRIPT_DIR/ki7mt-ai-lab-core.spec"
 
-if [[ -z "$1" ]]; then
-    printf "Usage: %s <new-version>\n" "$(basename "$0")"
-    printf "Example: %s 1.0.5\n" "$(basename "$0")"
-    printf "\nCurrent version: %s\n" "$(cat "$VERSION_FILE" 2>/dev/null || echo 'unknown')"
+usage() {
+    printf "Usage: %s <new-version> [--push]\n" "$(basename "$0")"
+    printf "\n"
+    printf "Options:\n"
+    printf "  <new-version>  Version in X.Y.Z format (e.g., 1.0.5)\n"
+    printf "  --push         Push commits and tags to origin and github\n"
+    printf "\n"
+    printf "Examples:\n"
+    printf "  %s 1.0.5          # Bump version only\n" "$(basename "$0")"
+    printf "  %s 1.0.5 --push   # Bump version and push to remotes\n" "$(basename "$0")"
+    printf "\n"
+    printf "Current version: %s\n" "$(cat "$VERSION_FILE" 2>/dev/null || echo 'unknown')"
+}
+
+# Parse arguments
+NEW_VERSION=""
+DO_PUSH=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --push|-p)
+            DO_PUSH=true
+            ;;
+        --help|-h)
+            usage
+            exit 0
+            ;;
+        *)
+            if [[ -z "$NEW_VERSION" ]]; then
+                NEW_VERSION="$arg"
+            else
+                printf "Error: Unexpected argument '%s'\n" "$arg" >&2
+                usage
+                exit 1
+            fi
+            ;;
+    esac
+done
+
+if [[ -z "$NEW_VERSION" ]]; then
+    usage
     exit 1
 fi
-
-NEW_VERSION="$1"
 
 # Validate version format (X.Y.Z)
 if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -51,4 +88,25 @@ printf "\nVersion bump complete!\n"
 printf "  VERSION file: %s\n" "$NEW_VERSION"
 printf "  Spec file:    %s\n" "$NEW_VERSION"
 printf "  Git tag:      v%s\n" "$NEW_VERSION"
-printf "\nTo push: git push && git push --tags\n"
+
+# Push if requested
+if [[ "$DO_PUSH" == true ]]; then
+    printf "\nPushing to remotes...\n"
+
+    printf "  Pushing to origin main... "
+    git push origin main && printf "OK\n" || { printf "FAILED\n"; exit 1; }
+
+    printf "  Pushing to github main... "
+    git push github main && printf "OK\n" || { printf "FAILED\n"; exit 1; }
+
+    printf "  Pushing tags to origin... "
+    git push origin --tags && printf "OK\n" || { printf "FAILED\n"; exit 1; }
+
+    printf "  Pushing tags to github... "
+    git push github --tags && printf "OK\n" || { printf "FAILED\n"; exit 1; }
+
+    printf "\nRelease v%s pushed to both remotes!\n" "$NEW_VERSION"
+else
+    printf "\nTo push: git push origin main && git push github main && git push --tags\n"
+    printf "Or run:  %s %s --push\n" "$(basename "$0")" "$NEW_VERSION"
+fi
