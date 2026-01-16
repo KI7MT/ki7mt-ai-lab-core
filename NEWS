@@ -1,0 +1,10 @@
+ki7mt-ai-lab-core NEWS
+
+Version 1.0.0 (2025-01-15)
+--------------------------
+- Initial release
+- WSPR 15-column schema with LowCardinality optimizations
+- Solar indices schema for propagation correlation
+- Geo functions placeholder for Maidenhead UDFs
+- ki7mt-lab-db-init utility for database initialization
+- ki7mt-lab-env utility for environment configuration

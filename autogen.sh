@@ -1,8 +1,3 @@
-#!/bin/bash
-# Bootstrap Autotools for ki7mt-ai-lab-core
-set -e
-
+#!/bin/sh
 mkdir -p build-aux
-autoreconf --install --force
-echo ""
-echo "Now run: ./configure && make"
+autoreconf -vif
