@@ -55,6 +55,6 @@ done
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
-* Thu Jan 16 2025 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
+* Thu Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
 - Switch to GitHub archive Source0 for COPR builds
 - Add --push flag to bump-version script
