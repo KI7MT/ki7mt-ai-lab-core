@@ -1,11 +1,11 @@
 Name:           ki7mt-ai-lab-core
-Version:        1.0.2
+Version:        1.0.3
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/KI7MT/ki7mt-ai-lab-core
-Source0:        %{name}-%{version}.tar.gz
+Source0: 	{{{ git_dir_pack }}}
 
 BuildArch:      noarch
 BuildRequires:  autoconf
