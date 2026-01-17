@@ -10,23 +10,21 @@
 
 This package installs:
 
-| File | Path | Description |
-|------|------|-------------|
-| `ki7mt-lab-db-init` | `/usr/bin/` | Database initialization script |
-| `ki7mt-lab-env` | `/usr/bin/` | Environment variables setup |
-| `*.sql` (5 files) | `/usr/share/ki7mt-ai-lab-core/ddl/` | ClickHouse DDL schemas |
+|  File               | Path                              | Description   |
+| :------------------ | :---------------------------------| :------------ |
+| ki7mt-lab-db-init   | /usr/bin/                         | Database initialization script |
+| ki7mt-lab-env       | /usr/bin/                         | Environment variables setup |
+| *.sql (5 files)     | /usr/share/ki7mt-ai-lab-core/ddl/ | ClickHouse DDL schemas |
 
 ### Database Schemas
 
-| Schema | Table/View | Purpose |
-|--------|------------|---------|
-| `01-wspr_schema.sql` | `wspr.spots_raw` | 15-column WSPR spot data (MergeTree, partitioned by month) |
-| `02-solar_indices.sql` | `wspr.solar_indices` | Solar flux indices from NOAA |
-| `03-solar_silver.sql` | `wspr.solar_silver` | Curated daily solar aggregates |
-| `04-data_mgmt.sql` | `wspr.data_mgmt` | Pipeline configuration key-value store |
-| `05-geo_functions.sql` | (functions) | Geographic calculation UDFs |
-
----
+| Schema                | Table/View          | Purpose                        |
+| :-------------------- | :------------------ | :----------------------------- |
+| 01-wspr_schema.sql    | wspr.spots_raw      | 15-column WSPR spot data (MergeTree, partitioned by month) |
+| 02-solar_indices.sql  | wspr.solar_indices  | Solar flux indices from NOAA |
+| 03-solar_silver.sql   | wspr.solar_silver   | Curated daily solar aggregates |
+| 04-data_mgmt.sql      | wspr.data_mgmt      | Pipeline configuration key-value store |
+| 05-geo_functions.sql  | (functions)         | Geographic calculation UDFs |
 
 ## Installation
 
@@ -48,8 +46,6 @@ cd ki7mt-ai-lab/ki7mt-ai-lab-core
 rpkg local
 sudo dnf install ./noarch/*.rpm
 ```
-
----
 
 ## Usage
 
@@ -126,8 +122,6 @@ export WSPR_DATA_DIR=/var/lib/wspr
 export CLICKHOUSE_DATA_DIR=/var/lib/clickhouse
 source /usr/bin/ki7mt-lab-env
 ```
-
----
 
 ## Testing Locally
 
