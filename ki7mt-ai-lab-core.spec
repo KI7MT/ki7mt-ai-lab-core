@@ -56,9 +56,9 @@ done
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
-* Thu Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
+* Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
 - Hardcode Source0 URL to avoid rpkg naming conflicts
 
-* Thu Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
+* Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
 - Switch to GitHub archive Source0 for COPR builds
 - Add --push flag to bump-version script
