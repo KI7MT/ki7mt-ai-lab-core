@@ -5,7 +5,8 @@ Summary:        Core database schemas for the KI7MT AI Lab
 
 License:        GPL-3.0-or-later
 URL:            https://github.com/KI7MT/ki7mt-ai-lab-core
-Source0:        https://github.com/KI7MT/%{name}/archive/v%{version}.tar.gz
+# Hardcoded Source avoids rpkg naming conflicts
+Source0:        https://github.com/KI7MT/ki7mt-ai-lab-core/archive/v%{version}.tar.gz
 
 BuildArch:      noarch
 
@@ -55,6 +56,9 @@ done
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
+* Thu Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
+- Hardcode Source0 URL to avoid rpkg naming conflicts
+
 * Thu Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
 - Switch to GitHub archive Source0 for COPR builds
 - Add --push flag to bump-version script
