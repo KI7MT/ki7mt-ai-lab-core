@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        1.1.5
+Version:        1.1.6
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -56,6 +56,12 @@ done
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
+* Fri Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.6-1
+- Add spec changelog for v1.1.5 and v1.1.6
+
+* Fri Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.5-1
+- Version sync with ki7mt-ai-lab-cuda
+
 * Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
 - Hardcode Source0 URL to avoid rpkg naming conflicts
 
