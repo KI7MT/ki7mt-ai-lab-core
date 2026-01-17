@@ -48,7 +48,7 @@ done
 
 %files
 %license COPYING
-%doc README
+%doc README.md
 %{_bindir}/ki7mt-lab-db-init
 %{_bindir}/ki7mt-lab-env
 %dir %{_datadir}/%{name}
