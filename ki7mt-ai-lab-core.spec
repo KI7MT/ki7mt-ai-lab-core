@@ -56,10 +56,10 @@ done
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
-* Fri Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.6-1
+* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.6-1
 - Add spec changelog for v1.1.5 and v1.1.6
 
-* Fri Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.5-1
+* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.5-1
 - Version sync with ki7mt-ai-lab-cuda
 
 * Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
