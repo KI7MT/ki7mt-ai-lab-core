@@ -4,7 +4,7 @@
 # Version.......: @VERSION@
 # Purpose.......: Initialize ClickHouse database and schemas for the AI Lab
 # Dependencies..: clickhouse-client
-# Usage.........: ki7mt-lab-db-init [--auto-confirm] [--force] [--dry-run]
+# Usage.........: ki7mt-lab-db-init [--auto-confirm] [--force] [--dry-run] [--stamp-version]
 # ==============================================================================
 #
 # IDEMPOTENT DESIGN:
@@ -37,20 +37,23 @@ NC='\033[0m'
 AUTO_CONFIRM=false
 FORCE_RECREATE=false
 DRY_RUN=false
+STAMP_VERSION=false
 
 # --- Parse Arguments ---
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --auto-confirm) AUTO_CONFIRM=true ;;
-        --force)        FORCE_RECREATE=true ;;
-        --dry-run)      DRY_RUN=true ;;
+        --auto-confirm)  AUTO_CONFIRM=true ;;
+        --force)         FORCE_RECREATE=true ;;
+        --dry-run)       DRY_RUN=true ;;
+        --stamp-version) STAMP_VERSION=true ;;
         -h|--help)
             printf "Usage: ki7mt-lab-db-init [OPTIONS]\n"
             printf "Options:\n"
-            printf "  --auto-confirm  Skip confirmation prompts\n"
-            printf "  --force         Recreate tables (DESTROYS DATA)\n"
-            printf "  --dry-run       Show what would be done without executing\n"
-            printf "  -h, --help      Show this help message\n"
+            printf "  --auto-confirm   Skip confirmation prompts\n"
+            printf "  --force          Recreate tables (DESTROYS DATA)\n"
+            printf "  --dry-run        Show what would be done without executing\n"
+            printf "  --stamp-version  Record installed version in data_mgmt.lab_versions\n"
+            printf "  -h, --help       Show this help message\n"
             exit 0
             ;;
         *)
@@ -105,6 +108,46 @@ verify_clickhouse() {
         printf "        Ensure clickhouse-server is running:\n" >&2
         printf "        sudo systemctl start clickhouse-server\n" >&2
         exit 1
+    fi
+}
+
+stamp_version() {
+    # Record installed version in data_mgmt.lab_versions table
+    local component="$PROGRAM"
+    local version="$VERSION"
+
+    printf "${BLUE}[STAMP]${NC} Recording version in database...\n"
+
+    # Ensure lab_versions table exists
+    if ! table_exists "data_mgmt" "lab_versions"; then
+        printf "  ${YELLOW}[WARN]${NC} Table data_mgmt.lab_versions does not exist.\n"
+        printf "  ${YELLOW}[WARN]${NC} Run full init first, or apply 06-lab_versions.sql\n"
+        return 1
+    fi
+
+    # Insert version record
+    local query="INSERT INTO data_mgmt.lab_versions (component, version, notes) VALUES ('${component}', '${version}', 'Stamped by ki7mt-lab-db-init')"
+
+    if $DRY_RUN; then
+        printf "  ${YELLOW}[DRY-RUN]${NC} Would execute: %s\n" "$query"
+        return 0
+    fi
+
+    if $CH_CLIENT -q "$query" 2>/dev/null; then
+        printf "  ${GREEN}[OK]${NC} Recorded %s v%s in data_mgmt.lab_versions\n" "$component" "$version"
+
+        # Show recent versions
+        printf "\n${BLUE}[INFO]${NC} Recent version history:\n"
+        $CH_CLIENT -q "
+            SELECT component, version, installed_at, installed_by
+            FROM data_mgmt.lab_versions
+            ORDER BY installed_at DESC
+            LIMIT 5
+            FORMAT PrettyCompact
+        " 2>/dev/null || true
+    else
+        printf "  ${RED}[ERROR]${NC} Failed to record version\n"
+        return 1
     fi
 }
 
@@ -205,7 +248,13 @@ if ! $DRY_RUN && table_exists "wspr" "spots_raw"; then
     fi
 fi
 
-# 7. Final status
+# 7. Stamp version if requested
+if $STAMP_VERSION; then
+    printf "\n"
+    stamp_version || SCHEMA_MISMATCH=true
+fi
+
+# 8. Final status
 printf "\n"
 if $SCHEMA_MISMATCH; then
     printf "${YELLOW}[DONE]${NC} Database setup completed with warnings.\n"
