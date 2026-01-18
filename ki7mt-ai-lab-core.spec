@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        1.1.7
+Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -63,7 +63,10 @@ echo "------------------------------------------------------------"
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
-* Fri Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.7-1
+* Sun Jan 18 2026 Greg Beam <ki7mt@outlook.com> - 2.0.0-1
+- Major version bump to align with ki7mt-ai-lab-apps v2.0.0
+
+* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.7-1
 - Add 01-wspr_schema_v2.sql: 17-column schema synchronized with CUDA wspr_structs.h
 - Use FixedString(N) for direct GPU memory mapping
 - Add mode and column_count columns
