@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        2.0.0
+Version:        2.0.3
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -63,10 +63,14 @@ echo "------------------------------------------------------------"
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
-* Sun Jan 18 2026 Greg Beam <ki7mt@outlook.com> - 2.0.0-1
+* Mon Jan 20 2025 Greg Beam <ki7mt@yahoo.com> - 2.0.3-1
+- Sync version across all lab packages
+- Fix maintainer email in changelog
+
+* Sun Jan 18 2025 Greg Beam <ki7mt@yahoo.com> - 2.0.0-1
 - Major version bump to align with ki7mt-ai-lab-apps v2.0.0
 
-* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.7-1
+* Sat Jan 17 2025 Greg Beam <ki7mt@yahoo.com> - 1.1.7-1
 - Add 01-wspr_schema_v2.sql: 17-column schema synchronized with CUDA wspr_structs.h
 - Use FixedString(N) for direct GPU memory mapping
 - Add mode and column_count columns
@@ -74,15 +78,15 @@ echo "------------------------------------------------------------"
 - Add migration ALTER statements for v1 to v2 upgrade
 - Add schema validation function wspr.fn_validate_schema_v2()
 
-* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.6-1
+* Sat Jan 17 2025 Greg Beam <ki7mt@yahoo.com> - 1.1.6-1
 - Add spec changelog for v1.1.5 and v1.1.6
 
-* Sat Jan 17 2026 Greg Beam <ki7mt@outlook.com> - 1.1.5-1
+* Sat Jan 17 2025 Greg Beam <ki7mt@yahoo.com> - 1.1.5-1
 - Version sync with ki7mt-ai-lab-cuda
 
-* Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.4-1
+* Fri Jan 16 2025 Greg Beam <ki7mt@yahoo.com> - 1.1.4-1
 - Hardcode Source0 URL to avoid rpkg naming conflicts
 
-* Fri Jan 16 2026 Greg Beam <ki7mt@outlook.com> - 1.1.3-1
+* Fri Jan 16 2025 Greg Beam <ki7mt@yahoo.com> - 1.1.3-1
 - Switch to GitHub archive Source0 for COPR builds
 - Add --push flag to bump-version script
