@@ -145,9 +145,9 @@ ALTER TABLE wspr.spots_raw
 
 -- Fix band type if it was Int16 (requires MODIFY COLUMN)
 -- NOTE: This is a metadata-only change in ClickHouse, data is reinterpreted
-ALTER TABLE wspr.spots_raw
-    MODIFY COLUMN IF EXISTS band Int32
-    COMMENT 'ADIF band ID (maps to int32_t)';
+-- DISABLED: ClickHouse does not support MODIFY COLUMN IF EXISTS syntax
+-- For v1->v2 migration, manually run:
+--   ALTER TABLE wspr.spots_raw MODIFY COLUMN band Int32;
 
 -- Convert String columns to FixedString if upgrading from v1
 -- WARNING: These conversions may fail if existing data exceeds FixedString length!
@@ -178,7 +178,8 @@ ORDER BY position;
 -- 6. Schema Validation Function
 -- ==============================================================================
 -- Returns 1 if schema matches expected v2 layout, 0 otherwise
-CREATE OR REPLACE FUNCTION wspr.fn_validate_schema_v2() AS () ->
+-- NOTE: ClickHouse functions are global, cannot use database prefix
+CREATE OR REPLACE FUNCTION fn_wspr_validate_schema_v2 AS () ->
 (
     SELECT if(
         -- Check all 17 columns exist with correct types
@@ -211,7 +212,8 @@ CREATE OR REPLACE FUNCTION wspr.fn_validate_schema_v2() AS () ->
 -- ==============================================================================
 -- This constant should match sizeof(WSPRSpot) in wspr_structs.h
 -- Used by ingestion pipeline to verify memory layout compatibility
-CREATE OR REPLACE FUNCTION wspr.fn_expected_struct_size() AS () -> 128;
+-- NOTE: ClickHouse functions are global, cannot use database prefix
+CREATE OR REPLACE FUNCTION fn_wspr_expected_struct_size AS () -> 128;
 
 
 -- ==============================================================================

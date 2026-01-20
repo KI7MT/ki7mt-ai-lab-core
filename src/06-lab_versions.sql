@@ -41,7 +41,7 @@ CREATE OR REPLACE VIEW data_mgmt.v_lab_versions_latest AS
 SELECT
     component,
     argMax(version, installed_at) AS version,
-    max(installed_at) AS installed_at,
+    max(installed_at) AS latest_installed_at,
     argMax(installed_by, installed_at) AS installed_by
 FROM data_mgmt.lab_versions
 GROUP BY component

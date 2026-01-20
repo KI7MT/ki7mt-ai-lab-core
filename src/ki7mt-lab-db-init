@@ -236,7 +236,7 @@ done
 printf "\n${BLUE}[VALIDATE]${NC} Verifying schema installation...\n"
 
 if ! $DRY_RUN && table_exists "wspr" "spots_raw"; then
-    expected_cols=15
+    expected_cols=17
     actual_cols=$(get_column_count "wspr" "spots_raw")
 
     if [ "$actual_cols" -eq "$expected_cols" ]; then
