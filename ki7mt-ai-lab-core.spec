@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        2.0.4
+Version:        2.0.5
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
