@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS solar.indices_raw (
     ssn Float32,
     kp_index Float32,
     ap_index Float32,
+    xray_short Float32 DEFAULT 0 COMMENT 'GOES 0.05-0.4nm X-ray flux (W/m²)',
+    xray_long Float32 DEFAULT 0 COMMENT 'GOES 0.1-0.8nm X-ray flux (W/m²)',
     source_file LowCardinality(String),
     updated_at DateTime DEFAULT now()
 ) ENGINE = ReplacingMergeTree(updated_at)

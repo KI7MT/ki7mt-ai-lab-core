@@ -11,6 +11,8 @@ SELECT
     MAX(ssn) AS ssn,
     MAX(kp_index) AS kp,
     MAX(ap_index) AS ap,
+    MAX(xray_short) AS xray_short,
+    MAX(xray_long) AS xray_long,
     any(source_file) AS primary_source
 FROM solar.indices_raw FINAL
 GROUP BY date
