@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        2.1.0
+Version:        2.2.0
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -63,6 +63,9 @@ echo "------------------------------------------------------------"
 %{_datadir}/%{name}/ddl/*.sql
 
 %changelog
+* Tue Feb 04 2026 Greg Beam <ki7mt@yahoo.com> - 2.2.0-1
+- Align version across all lab packages at 2.2.0 for Phase 4.1
+
 * Mon Feb 03 2026 Greg Beam <ki7mt@yahoo.com> - 2.1.0-1
 - Align version across all lab packages at 2.1.0
 
