@@ -178,7 +178,7 @@ printf "\n${BLUE}[STATUS]${NC} Current database state:\n"
 if database_exists "wspr"; then
     printf "  Database 'wspr': ${GREEN}EXISTS${NC}\n"
 
-    for tbl in spots_raw solar_indices; do
+    for tbl in bronze solar_indices; do
         if table_exists "wspr" "$tbl"; then
             engine=$(get_table_engine "wspr" "$tbl")
             cols=$(get_column_count "wspr" "$tbl")
@@ -235,14 +235,14 @@ done
 # 6. Post-flight validation
 printf "\n${BLUE}[VALIDATE]${NC} Verifying schema installation...\n"
 
-if ! $DRY_RUN && table_exists "wspr" "spots_raw"; then
+if ! $DRY_RUN && table_exists "wspr" "bronze"; then
     expected_cols=17
-    actual_cols=$(get_column_count "wspr" "spots_raw")
+    actual_cols=$(get_column_count "wspr" "bronze")
 
     if [ "$actual_cols" -eq "$expected_cols" ]; then
-        printf "  wspr.spots_raw: ${GREEN}VALID${NC} (%s columns)\n" "$actual_cols"
+        printf "  wspr.bronze: ${GREEN}VALID${NC} (%s columns)\n" "$actual_cols"
     else
-        printf "  wspr.spots_raw: ${YELLOW}MISMATCH${NC} (expected %s, got %s)\n" \
+        printf "  wspr.bronze: ${YELLOW}MISMATCH${NC} (expected %s, got %s)\n" \
             "$expected_cols" "$actual_cols"
         SCHEMA_MISMATCH=true
     fi

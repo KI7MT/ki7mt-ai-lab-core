@@ -17,8 +17,8 @@
 #
 # Prerequisites:
 #   - wspr.signatures_v1 table exists (12-signatures_v1.sql)
-#   - wspr.spots_raw populated (10.8B rows)
-#   - solar.indices_raw populated (76K+ rows)
+#   - wspr.bronze populated (10.8B rows)
+#   - solar.bronze populated (76K+ rows)
 #
 # Expected result: ~93.8M signature rows (115:1 compression from raw spots)
 # Total time on 9975WX (128-thread, 10.8B rows): ~3 min 10 sec
@@ -68,8 +68,8 @@ for bi in "${!BANDS[@]}"; do
             avg(sol.kp_index)                AS avg_kp,
             avg(s.distance)                  AS avg_distance,
             avg(s.azimuth)                   AS avg_azimuth
-        FROM wspr.spots_raw s
-        LEFT JOIN solar.indices_raw sol
+        FROM wspr.bronze s
+        LEFT JOIN solar.bronze sol
             ON toDate(s.timestamp) = sol.date
             AND intDiv(toHour(s.timestamp), 3) = intDiv(toHour(sol.time), 3)
         WHERE s.band = ${band}

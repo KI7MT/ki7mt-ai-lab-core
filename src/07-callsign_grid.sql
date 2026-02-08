@@ -4,7 +4,7 @@
 -- Maps callsigns to their most-used 6-char Maidenhead grid from WSPR data.
 -- Primary use: enriching RBN spots (which have no grid squares) with location.
 --
--- Sources: wspr.spots_raw TX callsigns (callsign→grid) and RX (reporter→reporter_grid)
+-- Sources: wspr.bronze TX callsigns (callsign→grid) and RX (reporter→reporter_grid)
 -- ReplacingMergeTree deduplicates by most recent last_seen across TX/RX inserts.
 --
 -- Expected: ~3.5M TX + ~50K RX = ~3.6M unique callsigns with grids.
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS wspr.callsign_grid (
     last_seen   Date           COMMENT 'Most recent spot date'
 ) ENGINE = ReplacingMergeTree(last_seen)
 ORDER BY callsign
-COMMENT 'Callsign→Grid Rosetta Stone from WSPR spots_raw (TX + RX)';
+COMMENT 'Callsign→Grid Rosetta Stone from WSPR bronze (TX + RX)';
 
 -- ============================================================================
 -- Population: TX callsigns (callsign → grid)
@@ -30,7 +30,7 @@ COMMENT 'Callsign→Grid Rosetta Stone from WSPR spots_raw (TX + RX)';
 --     substring(replaceAll(toString(grid), '\0', ''), 1, 4)  AS grid_4,
 --     count()                                         AS spot_count,
 --     max(toDate(timestamp))                          AS last_seen
--- FROM wspr.spots_raw
+-- FROM wspr.bronze
 -- WHERE length(replaceAll(toString(grid), '\0', '')) >= 4
 --   AND match(replaceAll(toString(grid), '\0', ''), '^[A-R]{2}[0-9]{2}')
 -- GROUP BY callsign, grid
@@ -47,7 +47,7 @@ COMMENT 'Callsign→Grid Rosetta Stone from WSPR spots_raw (TX + RX)';
 --     substring(replaceAll(toString(reporter_grid), '\0', ''), 1, 4)  AS grid_4,
 --     count()                                                AS spot_count,
 --     max(toDate(timestamp))                                 AS last_seen
--- FROM wspr.spots_raw
+-- FROM wspr.bronze
 -- WHERE length(replaceAll(toString(reporter_grid), '\0', '')) >= 4
 --   AND match(replaceAll(toString(reporter_grid), '\0', ''), '^[A-R]{2}[0-9]{2}')
 -- GROUP BY reporter, reporter_grid

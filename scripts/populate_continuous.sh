@@ -3,18 +3,18 @@
 # populate_continuous.sh — Phase 5.2 IFW-Weighted Training Table
 # ==============================================================================
 #
-# Populates wspr.training_continuous with 10M rows using Efraimidis-Spirakis
+# Populates wspr.gold_continuous with 10M rows using Efraimidis-Spirakis
 # weighted reservoir sampling against a 2D (SSN, midpoint_lat) density
 # histogram. Eliminates stair-step artifacts from discrete SSN quintile bins.
 #
 # Prerequisites:
-#   - wspr.training_continuous table exists (05-training_continuous.sql)
-#   - wspr.spots_raw populated (10.8B rows)
-#   - solar.indices_raw populated (76K+ rows)
+#   - wspr.gold_continuous table exists (05-gold_continuous.sql)
+#   - wspr.bronze populated (10.8B rows)
+#   - solar.bronze populated (76K+ rows)
 #
 # Reproducibility:
 #   All sampling uses cityHash64 (deterministic). Given the same source data
-#   in spots_raw and indices_raw, this script produces identical output.
+#   in bronze and bronze, this script produces identical output.
 #   The density histogram is built from a deterministic 10M-row sample of
 #   band 107 (20m), ordered by cityHash64(toString(timestamp)).
 #
@@ -46,7 +46,7 @@ TOTAL=0
 START_TIME=$(date +%s)
 
 echo "============================================================"
-echo "Phase 5.2: Populating wspr.training_continuous"
+echo "Phase 5.2: Populating wspr.gold_continuous"
 echo "Target: 10M rows (10 bands x ${ROWS_PER_BAND}, IFW-weighted)"
 echo "Host: ${CH_HOST}"
 echo "Date range: ${DATE_START} to ${DATE_END}"
@@ -71,11 +71,11 @@ SELECT
           + (reinterpretAsUInt8(substring(toString(s.reporter_grid), 4, 1)) - 48)
         ) / 2.0 - 90 + 0.5
     ), ${DENSITY_LAT_BIN_WIDTH}) AS lat_bin
-FROM wspr.spots_raw s
+FROM wspr.bronze s
 INNER JOIN (
     SELECT date, intDiv(toHour(time), 3) AS bucket,
            max(ssn) AS ssn
-    FROM solar.indices_raw FINAL
+    FROM solar.bronze FINAL
     GROUP BY date, bucket
 ) sol ON toDate(s.timestamp) = sol.date
      AND intDiv(toHour(s.timestamp), 3) = sol.bucket
@@ -121,7 +121,7 @@ for bi in "${!BANDS[@]}"; do
     T0=$(date +%s%N)
 
     clickhouse-client --host "$CH_HOST" --query "
-        INSERT INTO wspr.training_continuous
+        INSERT INTO wspr.gold_continuous
         SELECT
             s.snr,
             s.distance,
@@ -141,11 +141,11 @@ for bi in "${!BANDS[@]}"; do
             ) / 2.0 AS midpoint_lat,
             1.0 / sqrt(toFloat64(greatest(d.cell_count, ${DENSITY_FLOOR}))) AS sampling_weight,
             sol.sfi * log10(toFloat64(greatest(s.distance, 1))) AS sfi_dist_interact
-        FROM wspr.spots_raw s
+        FROM wspr.bronze s
         INNER JOIN (
             SELECT date, intDiv(toHour(time), 3) AS bucket,
                    max(ssn) AS ssn, max(observed_flux) AS sfi, max(kp_index) AS kp
-            FROM solar.indices_raw FINAL
+            FROM solar.bronze FINAL
             GROUP BY date, bucket
         ) sol ON toDate(s.timestamp) = sol.date
              AND intDiv(toHour(s.timestamp), 3) = sol.bucket
@@ -194,7 +194,7 @@ echo "  Density table dropped."
 END_TIME=$(date +%s)
 WALL=$(( END_TIME - START_TIME ))
 
-ACTUAL=$(clickhouse-client --host "$CH_HOST" --query "SELECT count() FROM wspr.training_continuous")
+ACTUAL=$(clickhouse-client --host "$CH_HOST" --query "SELECT count() FROM wspr.gold_continuous")
 
 echo ""
 echo "============================================================"

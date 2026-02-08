@@ -14,6 +14,6 @@ SELECT
     MAX(xray_short) AS xray_short,
     MAX(xray_long) AS xray_long,
     any(source_file) AS primary_source
-FROM solar.indices_raw FINAL
+FROM solar.bronze FINAL
 GROUP BY date
 ORDER BY date DESC;

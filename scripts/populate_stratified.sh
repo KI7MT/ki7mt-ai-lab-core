@@ -20,7 +20,7 @@ TOTAL=0
 START_TIME=$(date +%s)
 
 echo "==========================================================="
-echo "Phase 5.1: Populating wspr.training_stratified"
+echo "Phase 5.1: Populating wspr.gold_stratified"
 echo "Target: 10M rows (10 bands x 5 quintiles x 200K)"
 echo "==========================================================="
 echo ""
@@ -40,7 +40,7 @@ for bi in "${!BANDS[@]}"; do
         T0=$(date +%s%N)
         
         clickhouse-client --host "$CH_HOST" --query "
-            INSERT INTO wspr.training_stratified
+            INSERT INTO wspr.gold_stratified
             SELECT s.snr, s.distance, s.band,
                    toHour(s.timestamp) AS hour, toMonth(s.timestamp) AS month,
                    s.azimuth,
@@ -48,11 +48,11 @@ for bi in "${!BANDS[@]}"; do
                    toString(s.reporter_grid) AS rx_grid,
                    sol.ssn, sol.sfi, sol.kp,
                    ${qnum} AS ssn_quintile
-            FROM wspr.spots_raw s
+            FROM wspr.bronze s
             INNER JOIN (
                 SELECT date, intDiv(toHour(time), 3) AS bucket,
                        max(ssn) AS ssn, max(observed_flux) AS sfi, max(kp_index) AS kp
-                FROM solar.indices_raw FINAL
+                FROM solar.bronze FINAL
                 GROUP BY date, bucket
             ) sol ON toDate(s.timestamp) = sol.date
                      AND intDiv(toHour(s.timestamp), 3) = sol.bucket

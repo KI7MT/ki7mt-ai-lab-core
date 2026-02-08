@@ -7,7 +7,7 @@
 CREATE DATABASE IF NOT EXISTS solar;
 
 --
-CREATE TABLE IF NOT EXISTS solar.indices_raw (
+CREATE TABLE IF NOT EXISTS solar.bronze (
     date Date32,
     time DateTime,
     observed_flux Float32,

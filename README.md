@@ -10,21 +10,34 @@
 
 This package installs:
 
-|  File               | Path                              | Description   |
-| :------------------ | :---------------------------------| :------------ |
-| ki7mt-lab-db-init   | /usr/bin/                         | Database initialization script |
-| ki7mt-lab-env       | /usr/bin/                         | Environment variables setup |
-| *.sql (5 files)     | /usr/share/ki7mt-ai-lab-core/ddl/ | ClickHouse DDL schemas |
+```text
+File                Path                               Description
+ki7mt-lab-db-init   /usr/bin/                          Database initialization script
+ki7mt-lab-env       /usr/bin/                          Environment variables setup
+*.sql (15 files)    /usr/share/ki7mt-ai-lab-core/ddl/  ClickHouse DDL schemas
+*.sh (3 files)      /usr/share/ki7mt-ai-lab-core/scripts/  Population scripts
+```
 
 ### Database Schemas
 
-| Schema                | Table/View          | Purpose                        |
-| :-------------------- | :------------------ | :----------------------------- |
-| 01-wspr_schema.sql    | wspr.spots_raw      | 15-column WSPR spot data (MergeTree, partitioned by month) |
-| 02-solar_indices.sql  | wspr.solar_indices  | Solar flux indices from NOAA |
-| 03-solar_silver.sql   | wspr.solar_silver   | Curated daily solar aggregates |
-| 04-data_mgmt.sql      | wspr.data_mgmt      | Pipeline configuration key-value store |
-| 05-geo_functions.sql  | (functions)         | Geographic calculation UDFs |
+```text
+DDL                          Database    Creates
+01-wspr_schema_v2.sql        wspr        bronze, v_schema_contract, v_data_integrity
+02-solar_indices.sql         solar       bronze
+03-solar_silver.sql          solar       v_daily_indices
+04-data_mgmt.sql             data_mgmt   config
+05-geo_functions.sql         geo         v_grid_validation_example
+06-lab_versions.sql          data_mgmt   lab_versions, v_lab_versions_latest
+07-callsign_grid.sql         wspr        callsign_grid
+08-model_features.sql        wspr        silver
+09-quality_distribution_mv   wspr        v_quality_distribution (MV)
+10-rbn_schema_v1.sql         rbn         bronze
+11-contest_schema_v1.sql     contest     bronze
+12-signatures_v1.sql         wspr        signatures_v1
+13-training_stratified.sql   wspr        gold_stratified
+14-training_continuous.sql   wspr        gold_continuous
+15-training_v6_clean.sql     wspr        gold_v6
+```
 
 ## Installation
 
@@ -93,7 +106,7 @@ ki7mt-lab-db-init
   05-geo_functions.sql ... [OK]
 
 [VALIDATE] Verifying schema installation...
-  wspr.spots_raw: VALID (15 columns)
+  wspr.bronze: VALID (15 columns)
 
 [DONE] Database setup completed successfully.
 ```
@@ -145,11 +158,11 @@ clickhouse-client --query="SHOW DATABASES" | grep wspr
 # Check tables were created
 clickhouse-client --query="SHOW TABLES FROM wspr"
 
-# Verify spots_raw schema (should show 15 columns)
-clickhouse-client --query="DESCRIBE TABLE wspr.spots_raw"
+# Verify bronze schema (should show 15 columns)
+clickhouse-client --query="DESCRIBE TABLE wspr.bronze"
 
 # Check table is empty but ready
-clickhouse-client --query="SELECT count() FROM wspr.spots_raw"
+clickhouse-client --query="SELECT count() FROM wspr.bronze"
 ```
 
 ### Test Idempotency
@@ -163,7 +176,7 @@ ki7mt-lab-db-init
 # Expected output:
 # [STATUS] Current database state:
 #   Database 'wspr': EXISTS
-#     Table 'spots_raw': EXISTS (engine=MergeTree, cols=15, rows=0)
+#     Table 'bronze': EXISTS (engine=MergeTree, cols=15, rows=0)
 ```
 
 ### Test Environment Script
@@ -183,7 +196,7 @@ ls $DDL_PATH
 ```bash
 # Insert a test record
 clickhouse-client --query="
-INSERT INTO wspr.spots_raw VALUES (
+INSERT INTO wspr.bronze VALUES (
     1,                          -- id
     '2024-01-15 12:30:00',      -- timestamp
     'KI7MT',                    -- reporter
@@ -204,11 +217,11 @@ INSERT INTO wspr.spots_raw VALUES (
 # Query it back
 clickhouse-client --query="
 SELECT callsign, reporter, distance, snr
-FROM wspr.spots_raw
+FROM wspr.bronze
 WHERE id = 1"
 
 # Clean up test data
-clickhouse-client --query="ALTER TABLE wspr.spots_raw DELETE WHERE id = 1"
+clickhouse-client --query="ALTER TABLE wspr.bronze DELETE WHERE id = 1"
 ```
 
 ---

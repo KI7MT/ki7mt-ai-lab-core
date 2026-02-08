@@ -6,7 +6,7 @@
 
 CREATE DATABASE IF NOT EXISTS contest;
 
-CREATE TABLE IF NOT EXISTS contest.qsos (
+CREATE TABLE IF NOT EXISTS contest.bronze (
     timestamp    DateTime                COMMENT 'QSO timestamp UTC',
     frequency    UInt32                  COMMENT 'Frequency kHz',
     band         Int32                   COMMENT 'ADIF band ID',

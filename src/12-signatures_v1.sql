@@ -7,7 +7,7 @@
 -- Dimensions: tx_grid_4, rx_grid_4, band, hour, month
 -- Metrics:    median SNR, spot count, SNR stddev, reliability, avg SFI/Kp
 --
--- Population: Per-band INSERT from wspr.spots_raw JOIN solar.indices_raw
+-- Population: Per-band INSERT from wspr.bronze JOIN solar.bronze
 --   - Filters: band 102-111 (HF), distance >= 500 km (ground-wave rejection)
 --   - HAVING spot_count >= 5 (noise floor rejection)
 --   - Median via quantile(0.5) resists outliers ("Site Entropy" filter)
@@ -57,8 +57,8 @@ COMMENT 'ki7mt-ai-lab Step F: Aggregated WSPR signatures - noise rejection via m
 --     avg(sol.kp_index)                AS avg_kp,
 --     avg(s.distance)                  AS avg_distance,
 --     avg(s.azimuth)                   AS avg_azimuth
--- FROM wspr.spots_raw s
--- LEFT JOIN solar.indices_raw sol
+-- FROM wspr.bronze s
+-- LEFT JOIN solar.bronze sol
 --     ON toDate(s.timestamp) = sol.date
 --     AND intDiv(toHour(s.timestamp), 3) = intDiv(toHour(sol.time), 3)
 -- WHERE s.band = {BAND}           -- Run once per band: 102..111

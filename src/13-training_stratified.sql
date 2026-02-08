@@ -18,7 +18,7 @@
 -- Rebuild by truncating and re-running the population script.
 -- ==============================================================================
 
-CREATE TABLE IF NOT EXISTS wspr.training_stratified (
+CREATE TABLE IF NOT EXISTS wspr.gold_stratified (
     snr Int8,
     distance UInt32,
     band Int32,

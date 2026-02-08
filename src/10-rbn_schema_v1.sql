@@ -22,7 +22,7 @@
 CREATE DATABASE IF NOT EXISTS rbn;
 
 -- 2. Create raw spots table
-CREATE TABLE IF NOT EXISTS rbn.spots_raw (
+CREATE TABLE IF NOT EXISTS rbn.bronze (
     timestamp   DateTime                COMMENT 'Spot timestamp UTC',
     de_call     String                  COMMENT 'RBN skimmer callsign',
     de_pfx      String                  COMMENT 'Skimmer DXCC prefix',

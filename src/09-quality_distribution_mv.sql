@@ -1,11 +1,11 @@
 -- ============================================================================
 -- ki7mt-ai-lab-core: Quality Distribution Materialized View
 -- ============================================================================
--- Aggregates model_features into hourly quality buckets for monitoring
+-- Aggregates silver into hourly quality buckets for monitoring
 -- the distribution of propagation scores across bands and time.
 --
 -- Backed by SummingMergeTree — incremental aggregation as new embeddings
--- are inserted into wspr.model_features.
+-- are inserted into wspr.silver.
 --
 -- Dimensions: band, quality_bucket (0.1 resolution), hour
 -- Metrics:    count, avg_distance, avg_kp
@@ -31,7 +31,7 @@ AS SELECT
     count() AS count,
     avg(distance) AS avg_distance,
     avg(kp_index) AS avg_kp
-FROM wspr.model_features
+FROM wspr.silver
 GROUP BY
     timestamp,
     band,

@@ -4,7 +4,7 @@
 -- Description...: IFW-sampled training table (no discrete SSN boundaries)
 -- ==============================================================================
 --
--- Phase 5.2: Replaces wspr.training_stratified (Phase 5.1 discrete quintiles).
+-- Phase 5.2: Replaces wspr.gold_stratified (Phase 5.1 discrete quintiles).
 -- Inverse Frequency Weighting (IFW) eliminates stair-step boundary artifacts
 -- at SSN quintile edges by using Efraimidis-Spirakis weighted sampling
 -- against a 2D (SSN, midpoint_lat) density histogram.
@@ -14,7 +14,7 @@
 -- Rebuild by truncating and re-running the population script.
 -- ==============================================================================
 
-CREATE TABLE IF NOT EXISTS wspr.training_continuous (
+CREATE TABLE IF NOT EXISTS wspr.gold_continuous (
     snr               Int8,
     distance          UInt32,
     band              Int32,

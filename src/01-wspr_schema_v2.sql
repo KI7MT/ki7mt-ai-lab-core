@@ -47,10 +47,10 @@ CREATE DATABASE IF NOT EXISTS wspr;
 
 -- 2. Drop existing table if schema migration required
 -- UNCOMMENT ONLY FOR MIGRATION (will delete all data!)
--- DROP TABLE IF EXISTS wspr.spots_raw;
+-- DROP TABLE IF EXISTS wspr.bronze;
 
 -- 3. Create the 17-column raw spots table (v2 schema)
-CREATE TABLE IF NOT EXISTS wspr.spots_raw (
+CREATE TABLE IF NOT EXISTS wspr.bronze (
     -- ========================================================================
     -- Column 1: Spot Identifier (Offset 0 in C struct)
     -- ========================================================================
@@ -132,13 +132,13 @@ COMMENT '@PROGRAM@ v@VERSION@ Schema v2 - 17 Columns - Synchronized with wspr_st
 -- They are idempotent (safe to run multiple times).
 
 -- Add mode column if missing (default to 'WSPR' for existing rows)
-ALTER TABLE wspr.spots_raw
+ALTER TABLE wspr.bronze
     ADD COLUMN IF NOT EXISTS mode FixedString(8) DEFAULT 'WSPR'
     COMMENT 'WSPR mode e.g. WSPR, WSPR-15 (maps to char[8])'
     AFTER band;
 
 -- Add column_count if missing (default to 15 for legacy data)
-ALTER TABLE wspr.spots_raw
+ALTER TABLE wspr.bronze
     ADD COLUMN IF NOT EXISTS column_count UInt8 DEFAULT 15
     COMMENT 'Original CSV column count for validation (maps to uint8_t)'
     AFTER code;
@@ -147,17 +147,17 @@ ALTER TABLE wspr.spots_raw
 -- NOTE: This is a metadata-only change in ClickHouse, data is reinterpreted
 -- DISABLED: ClickHouse does not support MODIFY COLUMN IF EXISTS syntax
 -- For v1->v2 migration, manually run:
---   ALTER TABLE wspr.spots_raw MODIFY COLUMN band Int32;
+--   ALTER TABLE wspr.bronze MODIFY COLUMN band Int32;
 
 -- Convert String columns to FixedString if upgrading from v1
 -- WARNING: These conversions may fail if existing data exceeds FixedString length!
--- Run SELECT max(length(reporter)) FROM wspr.spots_raw; first to verify
+-- Run SELECT max(length(reporter)) FROM wspr.bronze; first to verify
 
--- ALTER TABLE wspr.spots_raw MODIFY COLUMN reporter FixedString(16);
--- ALTER TABLE wspr.spots_raw MODIFY COLUMN reporter_grid FixedString(8);
--- ALTER TABLE wspr.spots_raw MODIFY COLUMN callsign FixedString(16);
--- ALTER TABLE wspr.spots_raw MODIFY COLUMN grid FixedString(8);
--- ALTER TABLE wspr.spots_raw MODIFY COLUMN version FixedString(8);
+-- ALTER TABLE wspr.bronze MODIFY COLUMN reporter FixedString(16);
+-- ALTER TABLE wspr.bronze MODIFY COLUMN reporter_grid FixedString(8);
+-- ALTER TABLE wspr.bronze MODIFY COLUMN callsign FixedString(16);
+-- ALTER TABLE wspr.bronze MODIFY COLUMN grid FixedString(8);
+-- ALTER TABLE wspr.bronze MODIFY COLUMN version FixedString(8);
 
 
 -- ==============================================================================
@@ -170,7 +170,7 @@ SELECT
     type,
     comment
 FROM system.columns
-WHERE database = 'wspr' AND table = 'spots_raw'
+WHERE database = 'wspr' AND table = 'bronze'
 ORDER BY position;
 
 
@@ -203,7 +203,7 @@ CREATE OR REPLACE FUNCTION fn_wspr_validate_schema_v2 AS () ->
         1, 0
     )
     FROM system.columns
-    WHERE database = 'wspr' AND table = 'spots_raw'
+    WHERE database = 'wspr' AND table = 'bronze'
 );
 
 
@@ -229,7 +229,7 @@ SELECT
     countIf(column_count != 17) AS non_v2_rows,
     min(timestamp) AS earliest_spot,
     max(timestamp) AS latest_spot
-FROM wspr.spots_raw;
+FROM wspr.bronze;
 
 
 -- ==============================================================================
@@ -249,5 +249,5 @@ FROM wspr.spots_raw;
 --     uniqExact(reporter) AS unique_rx,
 --     avg(snr) AS avg_snr,
 --     max(distance) AS max_distance
--- FROM wspr.spots_raw
+-- FROM wspr.bronze
 -- GROUP BY day, band, mode;

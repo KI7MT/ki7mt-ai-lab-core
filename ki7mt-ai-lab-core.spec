@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        2.3.0
+Version:        2.3.1
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -71,9 +71,13 @@ echo "------------------------------------------------------------"
 %{_datadir}/%{name}/scripts/*.sh
 
 %changelog
+* Sat Feb 08 2026 Greg Beam <ki7mt@yahoo.com> - 2.3.1-1
+- Medallion architecture: rename spots_raw->bronze, model_features->silver, training->gold
+- Update README with 15 DDL schemas, convert tables to code blocks for COPR
+
 * Sat Feb 07 2026 Greg Beam <ki7mt@yahoo.com> - 2.3.0-1
 - DDL audit: renumber all DDL files to sequential 01-15 (resolve 04/05 conflicts)
-- Add DDL for wspr.model_features (08) and v_quality_distribution MV (09)
+- Add DDL for wspr.silver (08) and v_quality_distribution MV (09)
 - Add populate_signatures.sh and populate_v6_clean.sh population scripts
 - Drop wspr.training_set_v1 (empty, obsolete V1 dev iteration)
 - Every ClickHouse table now has a corresponding DDL file
