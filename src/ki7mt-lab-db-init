@@ -175,23 +175,26 @@ fi
 
 # 3. Pre-flight check: show current state
 printf "\n${BLUE}[STATUS]${NC} Current database state:\n"
-if database_exists "wspr"; then
-    printf "  Database 'wspr': ${GREEN}EXISTS${NC}\n"
 
-    for tbl in bronze solar_indices; do
-        if table_exists "wspr" "$tbl"; then
-            engine=$(get_table_engine "wspr" "$tbl")
-            cols=$(get_column_count "wspr" "$tbl")
-            rows=$(get_row_count "wspr" "$tbl")
-            printf "    Table '%s': ${GREEN}EXISTS${NC} (engine=%s, cols=%s, rows=%s)\n" \
-                "$tbl" "$engine" "$cols" "$rows"
-        else
-            printf "    Table '%s': ${YELLOW}MISSING${NC}\n" "$tbl"
-        fi
-    done
-else
-    printf "  Database 'wspr': ${YELLOW}MISSING${NC} (will be created)\n"
-fi
+# Key tables to check per database (db:table pairs)
+PREFLIGHT_TABLES="wspr:bronze solar:bronze rbn:bronze contest:bronze data_mgmt:config wspr:silver wspr:callsign_grid wspr:signatures_v1 wspr:gold_stratified wspr:gold_continuous wspr:gold_v6"
+
+for pair in $PREFLIGHT_TABLES; do
+    db_name="${pair%%:*}"
+    tbl_name="${pair##*:}"
+
+    if ! database_exists "$db_name"; then
+        printf "  %s.%s: ${YELLOW}DB MISSING${NC}\n" "$db_name" "$tbl_name"
+        continue
+    fi
+
+    if table_exists "$db_name" "$tbl_name"; then
+        rows=$(get_row_count "$db_name" "$tbl_name" 2>/dev/null || echo "?")
+        printf "  %s.%-18s ${GREEN}EXISTS${NC} (%s rows)\n" "$db_name" "$tbl_name" "$rows"
+    else
+        printf "  %s.%-18s ${YELLOW}MISSING${NC}\n" "$db_name" "$tbl_name"
+    fi
+done
 
 # 4. Force mode warning
 if $FORCE_RECREATE; then
@@ -235,17 +238,30 @@ done
 # 6. Post-flight validation
 printf "\n${BLUE}[VALIDATE]${NC} Verifying schema installation...\n"
 
-if ! $DRY_RUN && table_exists "wspr" "bronze"; then
-    expected_cols=17
-    actual_cols=$(get_column_count "wspr" "bronze")
+if ! $DRY_RUN; then
+    # Expected column counts per table (db:table:expected_cols)
+    VALIDATE_TABLES="wspr:bronze:17 solar:bronze:10 rbn:bronze:13 contest:bronze:12"
 
-    if [ "$actual_cols" -eq "$expected_cols" ]; then
-        printf "  wspr.bronze: ${GREEN}VALID${NC} (%s columns)\n" "$actual_cols"
-    else
-        printf "  wspr.bronze: ${YELLOW}MISMATCH${NC} (expected %s, got %s)\n" \
-            "$expected_cols" "$actual_cols"
-        SCHEMA_MISMATCH=true
-    fi
+    for triple in $VALIDATE_TABLES; do
+        db_name="${triple%%:*}"
+        rest="${triple#*:}"
+        tbl_name="${rest%%:*}"
+        expected="${rest##*:}"
+
+        if table_exists "$db_name" "$tbl_name"; then
+            actual=$(get_column_count "$db_name" "$tbl_name")
+            if [ "$actual" -eq "$expected" ]; then
+                printf "  %s.%s: ${GREEN}VALID${NC} (%s columns)\n" "$db_name" "$tbl_name" "$actual"
+            else
+                printf "  %s.%s: ${YELLOW}MISMATCH${NC} (expected %s, got %s)\n" \
+                    "$db_name" "$tbl_name" "$expected" "$actual"
+                SCHEMA_MISMATCH=true
+            fi
+        else
+            printf "  %s.%s: ${YELLOW}NOT CREATED${NC}\n" "$db_name" "$tbl_name"
+            SCHEMA_MISMATCH=true
+        fi
+    done
 fi
 
 # 7. Stamp version if requested
