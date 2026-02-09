@@ -1,0 +1,161 @@
+-- ==============================================================================
+-- Name..........: @PROGRAM@ - WSPR Balloon / Telemetry Callsign Flags
+-- Version.......: @VERSION@
+-- Copyright.....: @COPYRIGHT@
+-- Description...: Flags WSPR callsigns that are pico balloons, telemetry
+--                 encoders, or ITU-reserved prefixes. These callsigns must be
+--                 excluded from V14+ training to prevent ground-wave and
+--                 propagation model contamination.
+--
+--                 Three flag categories:
+--
+--                 1. velocity_tier — Callsigns observed in >= 45 unique 4-char
+--                    grids in a single day. Physically impossible for ground
+--                    stations (200 km × 100 km per grid = 9,000+ km/day).
+--                    Examples: VE3KCL, SA6BSS, K1TE (pico balloon trackers).
+--
+--                 2. type2_telemetry — WSPR Type 2 protocol encodes GPS
+--                    coordinates as synthetic callsigns and grid locators.
+--                    These look syntactically valid but are not real amateur
+--                    callsigns. Identified by exclusion from the callsign_grid
+--                    Rosetta Stone (verified operators from 10.8B WSPR spots).
+--
+--                 3. reserved_prefix — Callsigns starting with digits from
+--                    non-allocated ITU blocks, or Q-prefix (ITU reserved for
+--                    Q-codes). These cannot be real amateur callsigns.
+--
+--                 Physics rationale (Gemini Pro velocity tiers):
+--                   Fixed Station:   1 grid/day
+--                   Maritime:        < 10 grids/day
+--                   Ground Vehicle:  < 25 grids/day
+--                   Fast Mover:      >= 45 grids/day → DISCARD
+--
+--                 Population script: scripts/populate_balloon_callsigns.sh
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS wspr.balloon_callsigns (
+    callsign        String             COMMENT 'Callsign (uppercase, trimmed)',
+    flag_reason     LowCardinality(String)
+                                       COMMENT 'velocity_tier | type2_telemetry | reserved_prefix',
+    max_daily_grids UInt16             COMMENT 'Peak unique grids observed in a single day',
+    total_spots     UInt64             COMMENT 'Total spots across all time',
+    total_grids     UInt16             COMMENT 'Total unique 4-char grids all time',
+    first_seen      Date,
+    last_seen       Date
+) ENGINE = MergeTree()
+ORDER BY callsign
+COMMENT 'Fast movers and telemetry callsigns excluded from V14+ training. Velocity tier: >=45 grids/day = discard.';
+
+-- ==============================================================================
+-- Population Step 1: Velocity Tier (>= 45 grids/day)
+-- ==============================================================================
+-- Identifies callsigns crossing 45+ unique 4-char Maidenhead grids in any
+-- single UTC day. At 200 km per grid, this implies 9,000+ km of travel —
+-- only possible for high-altitude balloons or aircraft.
+--
+-- INSERT INTO wspr.balloon_callsigns
+-- SELECT
+--     cs AS callsign,
+--     'velocity_tier' AS flag_reason,
+--     max_daily AS max_daily_grids,
+--     total_spots,
+--     total_grids,
+--     first_seen,
+--     last_seen
+-- FROM (
+--     SELECT
+--         replaceAll(toString(callsign), '\0', '') AS cs,
+--         max(daily_grids) AS max_daily,
+--         sum(daily_spots) AS total_spots,
+--         uniqExact(g4) AS total_grids,
+--         min(d) AS first_seen,
+--         max(d) AS last_seen
+--     FROM (
+--         SELECT
+--             callsign,
+--             toDate(timestamp) AS d,
+--             substring(replaceAll(toString(grid), '\0', ''), 1, 4) AS g4,
+--             count() AS daily_spots,
+--             uniqExact(substring(replaceAll(toString(grid), '\0', ''), 1, 4))
+--                 OVER (PARTITION BY callsign, toDate(timestamp)) AS daily_grids
+--         FROM wspr.bronze
+--         WHERE match(replaceAll(toString(grid), '\0', ''), '^[A-R]{2}[0-9]{2}')
+--         GROUP BY callsign, d, g4
+--     )
+--     GROUP BY cs
+--     HAVING max_daily >= 45
+-- )
+-- SETTINGS max_threads = 64, max_memory_usage = 80000000000;
+
+-- ==============================================================================
+-- Population Step 2: Type 2 Telemetry
+-- ==============================================================================
+-- WSPR Type 2 protocol encodes GPS telemetry as synthetic callsigns. These
+-- are NOT in the callsign_grid Rosetta Stone (which contains 3.64M verified
+-- amateur operators). Any callsign appearing in wspr.bronze TX data but NOT
+-- in wspr.callsign_grid is flagged as telemetry.
+--
+-- Note: This must run AFTER callsign_grid is populated and AFTER velocity_tier
+-- callsigns are inserted (to avoid double-counting).
+--
+-- INSERT INTO wspr.balloon_callsigns
+-- SELECT
+--     cs AS callsign,
+--     'type2_telemetry' AS flag_reason,
+--     0 AS max_daily_grids,
+--     total_spots,
+--     total_grids,
+--     first_seen,
+--     last_seen
+-- FROM (
+--     SELECT
+--         replaceAll(toString(b.callsign), '\0', '') AS cs,
+--         count() AS total_spots,
+--         uniqExact(substring(replaceAll(toString(b.grid), '\0', ''), 1, 4)) AS total_grids,
+--         min(toDate(b.timestamp)) AS first_seen,
+--         max(toDate(b.timestamp)) AS last_seen
+--     FROM wspr.bronze b
+--     LEFT JOIN wspr.callsign_grid cg
+--         ON replaceAll(toString(b.callsign), '\0', '') = cg.callsign
+--     WHERE cg.callsign IS NULL
+--       AND replaceAll(toString(b.callsign), '\0', '')
+--           NOT IN (SELECT callsign FROM wspr.balloon_callsigns)
+--     GROUP BY cs
+-- )
+-- SETTINGS max_threads = 64, max_memory_usage = 80000000000;
+
+-- ==============================================================================
+-- Population Step 3: Reserved Prefixes
+-- ==============================================================================
+-- ITU Radio Regulations reserve certain prefixes. Callsigns starting with 'Q'
+-- are reserved for international Q-codes. Some digit-leading callsigns come
+-- from non-allocated blocks. These cannot be real amateur radio callsigns.
+--
+-- INSERT INTO wspr.balloon_callsigns
+-- SELECT
+--     cs AS callsign,
+--     'reserved_prefix' AS flag_reason,
+--     0 AS max_daily_grids,
+--     total_spots,
+--     total_grids,
+--     first_seen,
+--     last_seen
+-- FROM (
+--     SELECT
+--         replaceAll(toString(b.callsign), '\0', '') AS cs,
+--         count() AS total_spots,
+--         uniqExact(substring(replaceAll(toString(b.grid), '\0', ''), 1, 4)) AS total_grids,
+--         min(toDate(b.timestamp)) AS first_seen,
+--         max(toDate(b.timestamp)) AS last_seen
+--     FROM wspr.bronze b
+--     WHERE (
+--         match(replaceAll(toString(b.callsign), '\0', ''), '^Q')
+--         OR match(replaceAll(toString(b.callsign), '\0', ''), '^[0-9]{2}')
+--     )
+--     AND replaceAll(toString(b.callsign), '\0', '')
+--         NOT IN (SELECT callsign FROM wspr.balloon_callsigns)
+--     AND replaceAll(toString(b.callsign), '\0', '')
+--         NOT IN (SELECT callsign FROM wspr.callsign_grid)
+--     GROUP BY cs
+-- )
+-- SETTINGS max_threads = 64, max_memory_usage = 80000000000;
