@@ -14,29 +14,34 @@ This package installs:
 File                Path                               Description
 ki7mt-lab-db-init   /usr/bin/                          Database initialization script
 ki7mt-lab-env       /usr/bin/                          Environment variables setup
-*.sql (15 files)    /usr/share/ki7mt-ai-lab-core/ddl/  ClickHouse DDL schemas
-*.sh (3 files)      /usr/share/ki7mt-ai-lab-core/scripts/  Population scripts
+*.sql (20 files)    /usr/share/ki7mt-ai-lab-core/ddl/  ClickHouse DDL schemas
+*.sh (6 files)      /usr/share/ki7mt-ai-lab-core/scripts/  Population scripts
 ```
 
 ### Database Schemas
 
 ```text
-DDL                          Database    Creates
-01-wspr_schema_v2.sql        wspr        bronze, v_schema_contract, v_data_integrity
-02-solar_indices.sql         solar       bronze
-03-solar_silver.sql          solar       v_daily_indices
-04-data_mgmt.sql             data_mgmt   config
-05-geo_functions.sql         geo         v_grid_validation_example
-06-lab_versions.sql          data_mgmt   lab_versions, v_lab_versions_latest
-07-callsign_grid.sql         wspr        callsign_grid
-08-model_features.sql        wspr        silver
-09-quality_distribution_mv   wspr        v_quality_distribution (MV)
-10-rbn_schema_v1.sql         rbn         bronze
-11-contest_schema_v1.sql     contest     bronze
-12-signatures_v1.sql         wspr        signatures_v1
-13-training_stratified.sql   wspr        gold_stratified
-14-training_continuous.sql   wspr        gold_continuous
-15-training_v6_clean.sql     wspr        gold_v6
+DDL                                Database     Creates
+01-wspr_schema_v2.sql              wspr         bronze, v_schema_contract, v_data_integrity
+02-solar_indices.sql               solar        bronze
+03-solar_silver.sql                solar        v_daily_indices
+04-data_mgmt.sql                   data_mgmt    config
+05-geo_functions.sql               geo          v_grid_validation_example
+06-lab_versions.sql                data_mgmt    lab_versions, v_lab_versions_latest
+07-callsign_grid.sql               wspr         callsign_grid
+08-model_features.sql              wspr         silver
+09-quality_distribution_mv.sql     wspr         v_quality_distribution (MV)
+10-rbn_schema_v1.sql               rbn          bronze
+11-contest_schema_v1.sql           contest      bronze
+12-signatures_v1.sql               wspr         signatures_v1
+13-training_stratified.sql         wspr         gold_stratified
+14-training_continuous.sql         wspr         gold_continuous
+15-training_v6_clean.sql           wspr         gold_v6
+16-validation_step_i.sql           validation   step_i_paths, step_i_voacap
+17-balloon_callsigns.sql           wspr         balloon_callsigns
+18-validation_quality_test.sql     validation   quality_test_paths, quality_test_voacap
+19-dxpedition_synthesis.sql        dxpedition   catalog; rbn: dxpedition_paths
+20-signatures_v2_terrestrial.sql   wspr         signatures_v2_terrestrial
 ```
 
 ## Installation
