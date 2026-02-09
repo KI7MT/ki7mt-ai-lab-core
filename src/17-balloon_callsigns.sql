@@ -1,8 +1,27 @@
 -- ==============================================================================
--- Name..........: @PROGRAM@ - WSPR Balloon / Telemetry Callsign Flags
+-- Name..........: @PROGRAM@ - WSPR Balloon / Telemetry Callsign Flags (V1 DEPRECATED)
 -- Version.......: @VERSION@
 -- Copyright.....: @COPYRIGHT@
--- Description...: Flags WSPR callsigns that are pico balloons, telemetry
+-- Description...: DEPRECATED — Superseded by 21-balloon_callsigns_v2.sql
+--
+--                 V1 flagged entire callsigns, producing 99.7% false positives.
+--                 Operators like K1TE (87.7% ground station) and NI5F (99.5%
+--                 ground station) lost their entire WSPR history because they
+--                 occasionally launched pico balloons. Additionally, the
+--                 type2_telemetry category relied on callsign_grid which was
+--                 nearly empty (38K vs 3.64M expected), flagging 1.2M
+--                 legitimate operators as synthetic telemetry.
+--
+--                 V2 (21-balloon_callsigns_v2.sql) fixes both issues:
+--                 - Date-level velocity flags preserve ground-station days
+--                 - Full Rosetta Stone (3.64M) correctly identifies telemetry
+--                 - V1: 1.51M entries, 276M spots → V2: 1,443 entries, 950K spots
+--
+--                 This table is retained for historical reference only.
+--                 V14+ training uses wspr.balloon_callsigns_v2.
+--
+-- ORIGINAL DESCRIPTION:
+--                 Flags WSPR callsigns that are pico balloons, telemetry
 --                 encoders, or ITU-reserved prefixes. These callsigns must be
 --                 excluded from V14+ training to prevent ground-wave and
 --                 propagation model contamination.

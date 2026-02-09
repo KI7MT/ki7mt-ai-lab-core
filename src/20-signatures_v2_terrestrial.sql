@@ -6,6 +6,10 @@
 --                 balloon, telemetry, and reserved-prefix callsigns flagged in
 --                 wspr.balloon_callsigns.
 --
+--                 Two-layer filter via wspr.balloon_callsigns_v2:
+--                 - type2_telemetry: callsign-level exclusion (synthetic GPS)
+--                 - velocity_day: (callsign,date) exclusion (flight days only)
+--
 --                 Both TX and RX callsigns are filtered — a spot with a balloon
 --                 on either end is excluded, since the balloon's radio horizon
 --                 at 60,000 ft produces physics distinct from ground stations.
@@ -15,7 +19,7 @@
 --                             avg SFI/Kp, avg distance/azimuth
 --
 --                 V1 retained for A/B comparison (V13 was trained on V1).
---                 V14-TP (Terrestrial Physics) trains on this table.
+--                 V14-TP-v2 (Terrestrial Physics) trains on this table.
 --
 --                 Population: scripts/populate_signatures_v2_terrestrial.sh
 -- ==============================================================================
