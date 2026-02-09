@@ -14,7 +14,7 @@ This package installs:
 File                Path                               Description
 ki7mt-lab-db-init   /usr/bin/                          Database initialization script
 ki7mt-lab-env       /usr/bin/                          Environment variables setup
-*.sql (21 files)    /usr/share/ki7mt-ai-lab-core/ddl/  ClickHouse DDL schemas
+*.sql (22 files)    /usr/share/ki7mt-ai-lab-core/ddl/  ClickHouse DDL schemas
 *.sh (7 files)      /usr/share/ki7mt-ai-lab-core/scripts/  Population scripts
 ```
 
@@ -43,6 +43,7 @@ DDL                                Database     Creates
 19-dxpedition_synthesis.sql        dxpedition   catalog; rbn: dxpedition_paths
 20-signatures_v2_terrestrial.sql   wspr         signatures_v2_terrestrial
 21-balloon_callsigns_v2.sql        wspr         balloon_callsigns_v2 (date-level)
+22-pskr_schema_v1.sql              pskr         bronze
 ```
 
 ## Installation
