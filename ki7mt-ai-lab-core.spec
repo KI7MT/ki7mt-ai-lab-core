@@ -1,5 +1,5 @@
 Name:           ki7mt-ai-lab-core
-Version:        2.3.2
+Version:        2.4.0
 Release:        1%{?dist}
 Summary:        Core database schemas for the KI7MT AI Lab
 
@@ -15,8 +15,9 @@ Requires:       clickhouse-client >= 23.0
 
 %description
 Core database schemas and initialization scripts for the KI7MT AI Lab
-WSPR/Solar data analysis project. Includes ClickHouse DDL schemas
-optimized for 10+ billion rows of propagation data.
+WSPR/Solar data analysis project. Includes 28 ClickHouse DDL schemas
+optimized for 10+ billion rows of propagation data across WSPR, RBN,
+contest, PSK Reporter, solar, and validation databases.
 
 %prep
 %autosetup -n %{name}-%{version}
@@ -71,6 +72,13 @@ echo "------------------------------------------------------------"
 %{_datadir}/%{name}/scripts/*.sh
 
 %changelog
+* Tue Feb 11 2026 Greg Beam <ki7mt@yahoo.com> - 2.4.0-1
+- V20 production release
+- Add DDL files 16-28: validation, balloon, dxpedition, signatures v2,
+  pskr schema, contest/rbn signatures, live conditions, model results,
+  mode thresholds, pskr ingest log
+- Update description: 28 DDL schemas (was 15)
+
 * Sat Feb 08 2026 Greg Beam <ki7mt@yahoo.com> - 2.3.1-1
 - Medallion architecture: rename spots_raw->bronze, model_features->silver, training->gold
 - Update README with 15 DDL schemas, convert tables to code blocks for COPR
