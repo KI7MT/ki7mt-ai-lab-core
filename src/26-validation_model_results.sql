@@ -10,11 +10,15 @@
 --                 this table.
 --
 --                 Mode viability flags are pre-computed at INSERT time
---                 using the waterfall thresholds:
+--                 using the waterfall thresholds AFTER link budget adjustment:
+--                   adjusted = predicted_snr + station_advantage_db
 --                   FT8  >= -20 dB
 --                   CW   >= -10 dB
 --                   RTTY >=  -5 dB
 --                   SSB  >=  +5 dB
+--
+--                 Station advantage = 10*log10(P_tx/0.2W) + G_tx + G_rx
+--                 Profile 'wspr' = 0 dB (baseline, no adjustment)
 --
 --                 mode_hit is the core recall metric: "did the model predict
 --                 viable for the mode that was actually used?"
@@ -43,6 +47,7 @@ CREATE TABLE IF NOT EXISTS validation.model_results (
     run_timestamp       DateTime                COMMENT 'When the scoring was executed (UTC)',
     model_version       LowCardinality(String)  COMMENT 'Model identifier: v16, v20, v21...',
     source              LowCardinality(String)  COMMENT 'Ground truth source: rbn, pskr, contest',
+    profile             LowCardinality(String)  DEFAULT 'wspr' COMMENT 'Station profile for link budget: wspr, home_station, contest_cw...',
 
     -- Path identification
     tx_grid_4           FixedString(4)          COMMENT '4-char TX Maidenhead grid',
@@ -61,11 +66,12 @@ CREATE TABLE IF NOT EXISTS validation.model_results (
     predicted_snr       Float32                 COMMENT 'Model predicted SNR (dB, WSPR-denormalized)',
     snr_error           Float32                 COMMENT 'predicted_snr - actual_snr (dB)',
 
-    -- Mode viability verdicts (from predicted_snr vs thresholds)
-    ft8_viable          UInt8                   COMMENT 'predicted_snr >= -20 dB',
-    cw_viable           UInt8                   COMMENT 'predicted_snr >= -10 dB',
-    rtty_viable         UInt8                   COMMENT 'predicted_snr >= -5 dB',
-    ssb_viable          UInt8                   COMMENT 'predicted_snr >= +5 dB',
+    -- Mode viability verdicts (from adjusted_snr vs thresholds)
+    -- adjusted_snr = predicted_snr + station_advantage_db (from profile)
+    ft8_viable          UInt8                   COMMENT 'adjusted_snr >= -20 dB',
+    cw_viable           UInt8                   COMMENT 'adjusted_snr >= -10 dB',
+    rtty_viable         UInt8                   COMMENT 'adjusted_snr >= -5 dB',
+    ssb_viable          UInt8                   COMMENT 'adjusted_snr >= +5 dB',
 
     -- Verdict for the actual mode used
     mode_hit            UInt8                   COMMENT '1 if model predicted viable for actual mode',
